@@ -139,15 +139,36 @@ helm upgrade --install autoreparos . \
 
 ---
 
-## 6. Integração Contínua (CI/CD)
+## 6. Testes Locais de Observabilidade com Docker Compose
 
-O repositório conta com pipeline automatizada no GitHub Actions (`.github/workflows/ci.yml`):
+Para validar os componentes da stack de telemetria (OpenTelemetry Collector, Prometheus, Jaeger, Loki e Grafana) antes do empacotamento com Helm, o repositório disponibiliza um `docker-compose.yml`:
+
+```bash
+# Iniciar a stack local de observabilidade
+docker-compose up -d
+
+# Acessar os painéis locais:
+# - Grafana: http://localhost:3000 (admin / admin)
+# - Jaeger UI: http://localhost:16686
+# - Prometheus: http://localhost:9090
+# - Loki: http://localhost:3100
+# - OTLP Collector: gRPC na porta 4317 / HTTP na porta 4318
+
+# Parar o ambiente
+docker-compose down
+```
+
+---
+
+## 7. Integração Contínua (CI/CD)
+
+O repositório conta com pipeline automatizada no GitHub Actions (`.github/workflows/ci.yml`) com controle de concorrência e actions com commit SHA fixados:
 - `Terraform Format & Validate`: Verifica padrões de formatação HCL e integridade sintática dos módulos.
 - `Helm Lint`: Executa análise estática de todos os templates Helm garantindo validação de schemas e dependências.
 
 ---
 
-## 7. Critérios da Banca FIAP (SOAT)
+## 8. Critérios da Banca FIAP (SOAT)
 
 - **Colaborador Oficial:** O usuário `soat-architecture` está convidado como colaborador neste repositório.
 - **Isolamento Multi-Repo:** Repositório autônomo e focado em orquestração Kubernetes, provisionamento EKS e Gateway de roteamento de nuvem.
