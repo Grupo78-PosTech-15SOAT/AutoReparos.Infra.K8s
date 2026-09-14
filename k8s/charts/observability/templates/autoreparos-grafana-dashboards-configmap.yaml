@@ -19,14 +19,14 @@ data:
           "collapsed": false,
           "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
           "id": 1,
-          "title": "Taxa de Requisições (RPS)",
+          "title": "Taxa de Requisições (RPS, média 5m)",
           "type": "stat",
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "targets": [
             {
               "datasource": { "type": "prometheus", "uid": "Prometheus" },
               "editorMode": "code",
-              "expr": "sum(rate(http_server_request_duration_seconds_count[1m]))",
+              "expr": "sum(rate(autoreparos_http_server_request_duration_seconds_count[5m]))",
               "legendFormat": "Req/sec",
               "range": true,
               "refId": "A"
@@ -37,14 +37,14 @@ data:
           "collapsed": false,
           "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
           "id": 2,
-          "title": "Latência Média (ms)",
+          "title": "Latência Média (ms, janela 5m)",
           "type": "stat",
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "targets": [
             {
               "datasource": { "type": "prometheus", "uid": "Prometheus" },
               "editorMode": "code",
-              "expr": "sum(rate(http_server_request_duration_seconds_sum[1m])) / sum(rate(http_server_request_duration_seconds_count[1m])) * 1000",
+              "expr": "sum(rate(autoreparos_http_server_request_duration_seconds_sum[5m])) / clamp_min(sum(rate(autoreparos_http_server_request_duration_seconds_count[5m])), 0.001) * 1000",
               "legendFormat": "ms",
               "range": true,
               "refId": "A"
@@ -62,7 +62,7 @@ data:
             {
               "datasource": { "type": "prometheus", "uid": "Prometheus" },
               "editorMode": "code",
-              "expr": "process_memory_working_set_bytes / 1024 / 1024",
+              "expr": "autoreparos_dotnet_process_memory_working_set_bytes / 1024 / 1024",
               "legendFormat": "MB",
               "range": true,
               "refId": "A"
@@ -73,14 +73,14 @@ data:
           "collapsed": false,
           "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
           "id": 4,
-          "title": "Erros HTTP 5xx",
+          "title": "Erros HTTP 5xx (taxa 5m)",
           "type": "stat",
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "targets": [
             {
               "datasource": { "type": "prometheus", "uid": "Prometheus" },
               "editorMode": "code",
-              "expr": "sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~\"5..\"}[1m]))",
+              "expr": "sum(rate(autoreparos_http_server_request_duration_seconds_count{http_response_status_code=~\"5..\"}[5m])) or vector(0)",
               "legendFormat": "5xx/sec",
               "range": true,
               "refId": "A"
@@ -98,7 +98,7 @@ data:
             {
               "datasource": { "type": "prometheus", "uid": "Prometheus" },
               "editorMode": "code",
-              "expr": "sum by (http_route, http_request_method) (rate(http_server_request_duration_seconds_count[1m]))",
+              "expr": "sum by (http_route, http_request_method) (rate(autoreparos_http_server_request_duration_seconds_count[5m]))",
               "legendFormat": "{{ "{{" }}http_request_method}} {{ "{{" }}http_route}}",
               "range": true,
               "refId": "A"
