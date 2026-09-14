@@ -1,0 +1,14 @@
+AutoReparos foi implantado com sucesso no cluster Kubernetes!
+
+Para acompanhar a inicialização e verificar os pods:
+  kubectl get pods -w
+
+Para testar a API localmente via port-forward:
+  kubectl port-forward svc/autoreparos-service 8080:8080
+
+Depois, acesse no seu navegador:
+  Saúde da API (Health Checks): http://localhost:8080/health
+  Swagger API Docs:              http://localhost:8080/swagger
+
+Caso tenha habilitado o Ingress Controller e configurado o arquivo de hosts:
+  API: http://autoreparos.local

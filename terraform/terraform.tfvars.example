@@ -1,0 +1,18 @@
+aws_region   = "us-east-1"
+cluster_name = "autoreparos-cluster"
+environment  = "production"
+
+vpc_cidr             = "10.0.0.0/16"
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.3.0/24", "10.0.4.0/24"]
+availability_zones   = ["us-east-1a", "us-east-1b"]
+
+instance_types = ["t3.small"]
+desired_size   = 2
+max_size       = 4
+min_size       = 2
+
+# ARN e nome da Lambda para integração no API Gateway HTTP v2
+lambda_function_arn  = "arn:aws:lambda:us-east-1:123456789012:function:autoreparos-auth-lambda-production"
+lambda_function_name = "autoreparos-auth-lambda-production"
+eks_ingress_url      = "http://k8s-ingress-nlb-1234567890.us-east-1.elb.amazonaws.com"

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: observability
+description: Subchart Helm para Infraestrutura de Observabilidade OpenTelemetry (OTel Collector, Prometheus, Jaeger, Loki e Grafana)
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: autoreparos-prometheus
+  labels:
+    app: autoreparos-prometheus
+    {{- include "observability.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: autoreparos-prometheus
+  ports:
+    - port: 9090
+      targetPort: 9090

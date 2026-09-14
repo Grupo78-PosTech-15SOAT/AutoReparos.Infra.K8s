@@ -1,0 +1,6 @@
+apiVersion: v2
+name: api
+description: Subchart Helm para a API ASP.NET Core .NET 10 do AutoReparos
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

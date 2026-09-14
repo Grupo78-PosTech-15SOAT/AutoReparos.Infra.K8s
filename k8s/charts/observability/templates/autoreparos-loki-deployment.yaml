@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autoreparos-loki
+  labels:
+    app: autoreparos-loki
+    {{- include "observability.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: autoreparos-loki
+  template:
+    metadata:
+      labels:
+        app: autoreparos-loki
+    spec:
+      containers:
+        - name: autoreparos-loki
+          image: "{{ .Values.loki.image.repository }}:{{ .Values.loki.image.tag }}"
+          args: ["-config.file=/etc/loki/loki.yaml"]
+          ports:
+            - containerPort: 3100
+          resources:
+            {{- toYaml .Values.loki.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki/loki.yaml
+              subPath: loki.yaml
+      volumes:
+        - name: config
+          configMap:
+            name: autoreparos-loki-config

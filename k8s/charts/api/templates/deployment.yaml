@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "api.fullname" . }}
+  labels:
+    {{- include "api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "api.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        fsGroup: 1654
+      containers:
+
+
+        - name: {{ .Chart.Name }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            runAsNonRoot: true
+            runAsUser: 1654
+            runAsGroup: 1654
+            capabilities:
+              drop:
+                - ALL
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: {{ .Values.config.aspnetcoreEnvironment | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-database-secret
+                  key: postgres-password
+            - name: ConnectionStrings__DbConnection
+              value: "Host={{ .Release.Name }}-database-service;Database=autoreparos;Username=admin;Password=$(POSTGRES_PASSWORD)"
+
+            - name: Jwt__ExpiryHours
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "api.fullname" . }}-config
+                  key: Jwt__ExpiryHours
+            - name: SeedUser__Email
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "api.fullname" . }}-config
+                  key: SeedUser__Email
+            - name: SendGrid__FromEmail
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "api.fullname" . }}-config
+                  key: SendGrid__FromEmail
+            - name: SendGrid__FromName
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "api.fullname" . }}-config
+                  key: SendGrid__FromName
+            - name: Jwt__Secret
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "api.fullname" . }}-secrets
+                  key: Jwt__Secret
+            - name: SeedUser__Password
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "api.fullname" . }}-secrets
+                  key: SeedUser__Password
+            - name: AprovacaoToken__Secret
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "api.fullname" . }}-secrets
+                  key: AprovacaoToken__Secret
+            - name: SendGrid__ApiKey
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "api.fullname" . }}-secrets
+                  key: SendGrid__ApiKey
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

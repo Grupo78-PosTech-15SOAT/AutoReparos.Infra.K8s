@@ -1,0 +1,23 @@
+{{- if .Values.otelCollector.hpa.enabled -}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: autoreparos-otel-collector-hpa
+  labels:
+    app: autoreparos-otel-collector
+    {{- include "observability.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: autoreparos-otel-collector
+  minReplicas: {{ .Values.otelCollector.hpa.minReplicas }}
+  maxReplicas: {{ .Values.otelCollector.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.otelCollector.hpa.targetCPUUtilizationPercentage }}
+{{- end }}

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "api.fullname" . }}-config
+  labels:
+    {{- include "api.labels" . | nindent 4 }}
+data:
+  Jwt__ExpiryHours: {{ .Values.config.jwtExpiryHours | quote }}
+  SeedUser__Email: {{ .Values.config.seedUserEmail | quote }}
+  SendGrid__FromEmail: {{ .Values.config.sendGridFromEmail | quote }}
+  SendGrid__FromName: {{ .Values.config.sendGridFromName | quote }}

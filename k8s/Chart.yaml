@@ -1,0 +1,20 @@
+apiVersion: v2
+name: k8s
+description: Umbrella Helm Chart para a plataforma AutoReparos (API, Banco de Dados, Web e Observabilidade)
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: api
+    version: 1.0.0
+    repository: "file://charts/api"
+  - name: database
+    version: 1.0.0
+    repository: "file://charts/database"
+  - name: web
+    version: 1.0.0
+    repository: "file://charts/web"
+  - name: observability
+    version: 1.0.0
+    repository: "file://charts/observability"

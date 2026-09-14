@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autoreparos-jaeger
+  labels:
+    app: autoreparos-jaeger
+    {{- include "observability.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: autoreparos-jaeger
+  template:
+    metadata:
+      labels:
+        app: autoreparos-jaeger
+    spec:
+      containers:
+        - name: autoreparos-jaeger
+          image: "{{ .Values.jaeger.image.repository }}:{{ .Values.jaeger.image.tag }}"
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: ui
+              containerPort: 16686
+          resources:
+            {{- toYaml .Values.jaeger.resources | nindent 12 }}

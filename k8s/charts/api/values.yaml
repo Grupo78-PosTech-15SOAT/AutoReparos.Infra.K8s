@@ -1,0 +1,46 @@
+replicaCount: 1
+
+image:
+  repository: autoreparos-api
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+
+config:
+  aspnetcoreEnvironment: "Development"
+  jwtExpiryHours: "2"
+  seedUserEmail: "admin@autoreparos.com"
+  sendGridFromEmail: "noreply@autoreparos.com"
+  sendGridFromName: "AutoReparos"
+
+secrets:
+  jwtSecret: ""
+  seedUserPassword: ""
+  aprovacaoTokenSecret: ""
+  sendGridApiKey: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+hpa:
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80

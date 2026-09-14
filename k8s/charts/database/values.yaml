@@ -1,0 +1,15 @@
+image: postgres:16
+database: autoreparos
+user: admin
+password: ""
+storageSize: 2Gi
+persistence:
+  enabled: true
+  storageClass: "hostpath"
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

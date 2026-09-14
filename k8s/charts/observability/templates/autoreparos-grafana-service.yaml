@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: autoreparos-grafana
+  labels:
+    app: autoreparos-grafana
+    {{- include "observability.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app: autoreparos-grafana
+  ports:
+    - port: 3000
+      targetPort: 3000
