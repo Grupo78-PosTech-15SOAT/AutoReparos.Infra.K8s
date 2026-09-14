@@ -35,6 +35,19 @@ data:
 
       loki:
         endpoint: http://autoreparos-loki:3100/loki/api/v1/push
+{{- if .Values.otelCollector.vendor.enabled }}
+
+      otlp/vendor:
+        endpoint: {{ .Values.otelCollector.vendor.endpoint | quote }}
+        headers:
+          {{ .Values.otelCollector.vendor.apiKeyHeader }}: ${env:OTEL_VENDOR_API_KEY}
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+        sending_queue:
+          enabled: true
+{{- end }}
 
     extensions:
       health_check:
@@ -46,12 +59,12 @@ data:
         traces:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [otlp/jaeger]
+          exporters: [otlp/jaeger{{ if .Values.otelCollector.vendor.enabled }}, otlp/vendor{{ end }}]
         metrics:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [prometheus]
+          exporters: [prometheus{{ if .Values.otelCollector.vendor.enabled }}, otlp/vendor{{ end }}]
         logs:
           receivers: [otlp]
           processors: [memory_limiter, batch]
-          exporters: [loki]
+          exporters: [loki{{ if .Values.otelCollector.vendor.enabled }}, otlp/vendor{{ end }}]
