@@ -42,3 +42,8 @@ output "api_gateway_id" {
   description = "ID do AWS API Gateway HTTP API v2"
   value       = module.apigateway.api_id
 }
+
+output "vpc_link_id" {
+  description = "ID do AWS API Gateway VPC Link privado"
+  value       = module.apigateway.vpc_link_id
+}

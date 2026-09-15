@@ -43,12 +43,63 @@ module "ecr" {
   environment     = var.environment
 }
 
-# 5. AWS API Gateway v2 (HTTP API com roteamento unificado: /auth/cliente -> Lambda, /api/* -> EKS)
+# 5. AWS API Gateway v2 (HTTP API com VPC Link Privado: /auth/cliente -> Lambda, /api/* e /health -> EKS)
 module "apigateway" {
   source = "./modules/apigateway"
 
   environment          = var.environment
+  vpc_id               = module.vpc.vpc_id
+  private_subnet_ids   = module.vpc.private_subnet_ids
   lambda_function_arn  = var.lambda_function_arn
   lambda_function_name = var.lambda_function_name
   eks_ingress_url      = var.eks_ingress_url
+}
+
+# 6. Publicação de Parâmetros de Rede no AWS SSM Parameter Store para Desacoplamento Multi-Repo
+resource "aws_ssm_parameter" "vpc_id" {
+  name        = "/autoreparos/${var.environment}/vpc_id"
+  description = "ID da VPC provisionada para o cluster EKS e RDS do AutoReparos"
+  type        = "String"
+  value       = module.vpc.vpc_id
+  overwrite   = true
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+resource "aws_ssm_parameter" "private_subnets" {
+  name        = "/autoreparos/${var.environment}/subnets/private"
+  description = "Lista separada por virgula dos IDs das Subnets privadas do AutoReparos"
+  type        = "StringList"
+  value       = join(",", module.vpc.private_subnet_ids)
+  overwrite   = true
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+resource "aws_ssm_parameter" "eks_security_group" {
+  name        = "/autoreparos/${var.environment}/security-groups/eks-nodes"
+  description = "ID do Security Group do cluster EKS para permitir acesso ao RDS PostgreSQL"
+  type        = "String"
+  value       = module.eks.cluster_security_group_id
+  overwrite   = true
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+resource "aws_ssm_parameter" "api_gateway_endpoint" {
+  name        = "/autoreparos/${var.environment}/apigateway/endpoint"
+  description = "Endpoint base publico do AWS API Gateway HTTP API v2"
+  type        = "String"
+  value       = module.apigateway.api_endpoint
+  overwrite   = true
+
+  tags = {
+    Environment = var.environment
+  }
 }
