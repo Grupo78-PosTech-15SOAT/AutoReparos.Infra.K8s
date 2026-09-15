@@ -75,18 +75,74 @@ resource "aws_lambda_permission" "apigw_lambda" {
   source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
 }
 
-# 2. Integração com a API Backend no cluster EKS (/api/{proxy+})
+# 2. Security Group dedicado para a interface de rede do VPC Link
+resource "aws_security_group" "vpc_link" {
+  name        = "autoreparos-apigw-vpc-link-sg-${var.environment}"
+  description = "Security Group para a interface do AWS API Gateway VPC Link"
+  vpc_id      = var.vpc_id
+
+  egress {
+    description = "Permitir saida para as portas da aplicacao e NLB interno"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name        = "autoreparos-apigw-vpc-link-sg-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+# 3. AWS API Gateway v2 VPC Link conectando as subnets privadas do EKS
+resource "aws_apigatewayv2_vpc_link" "eks_link" {
+  name               = "autoreparos-vpc-link-${var.environment}"
+  security_group_ids = [aws_security_group.vpc_link.id]
+  subnet_ids         = var.private_subnet_ids
+
+  tags = {
+    Name        = "autoreparos-vpc-link-${var.environment}"
+    Environment = var.environment
+  }
+}
+
+# 4. Integração com a API Backend no cluster EKS (/api/{proxy+}) via VPC Link Privado
 resource "aws_apigatewayv2_integration" "eks_proxy" {
   api_id                 = aws_apigatewayv2_api.http_api.id
   integration_type       = "HTTP_PROXY"
   integration_method     = "ANY"
-  integration_uri        = "${var.eks_ingress_url}/api/{proxy}"
+  connection_type        = "VPC_LINK"
+  connection_id          = aws_apigatewayv2_vpc_link.eks_link.id
+  integration_uri        = startswith(var.eks_ingress_url, "arn:aws:") ? var.eks_ingress_url : "${var.eks_ingress_url}/api/{proxy}"
   payload_format_version = "1.0"
-  description            = "Proxy HTTP para o Ingress NLB do cluster Kubernetes EKS"
+  description            = "Proxy HTTP privado via VPC Link para o Ingress NLB do EKS"
+
+  depends_on = [aws_apigatewayv2_vpc_link.eks_link]
 }
 
 resource "aws_apigatewayv2_route" "eks_proxy_route" {
   api_id    = aws_apigatewayv2_api.http_api.id
   route_key = "ANY /api/{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.eks_proxy.id}"
+}
+
+# 5. Rota Dedicada de Healthcheck (/health) via VPC Link
+resource "aws_apigatewayv2_integration" "health_check" {
+  api_id                 = aws_apigatewayv2_api.http_api.id
+  integration_type       = "HTTP_PROXY"
+  integration_method     = "GET"
+  connection_type        = "VPC_LINK"
+  connection_id          = aws_apigatewayv2_vpc_link.eks_link.id
+  integration_uri        = startswith(var.eks_ingress_url, "arn:aws:") ? var.eks_ingress_url : "${var.eks_ingress_url}/health"
+  payload_format_version = "1.0"
+  description            = "Sondagem de integridade de ponta a ponta para o backend EKS"
+
+  depends_on = [aws_apigatewayv2_vpc_link.eks_link]
+}
+
+resource "aws_apigatewayv2_route" "health_check_route" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "GET /health"
+  target    = "integrations/${aws_apigatewayv2_integration.health_check.id}"
 }

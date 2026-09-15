@@ -1,4 +1,4 @@
-name: CI - AutoReparos.Infra.K8s
+name: CI/CD - AutoReparos.Infra.K8s
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,7 +20,7 @@ on:
 
 jobs:
   validate-terraform:
-    name: Validação IaC (Terraform)
+    name: Validação Sintática IaC (Terraform)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -59,3 +59,57 @@ jobs:
 
       - name: Lint Helm Chart
         run: helm lint k8s/
+
+  plan-and-apply:
+    name: Terraform Plan & Apply
+    needs: [validate-terraform, lint-helm]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
+    # Executa apenas quando for push na branch main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Check AWS Credentials
+        id: check-creds
+        run: |
+          if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::AWS credentials (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY) not configured in secrets. Skipping Terraform Plan & Apply."
+          fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Setup Terraform
+        if: steps.check-creds.outputs.configured == 'true'
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: 1.8.0
+
+      - name: Configure AWS Credentials
+        if: steps.check-creds.outputs.configured == 'true'
+        uses: aws-actions/configure-aws-credentials@e3ddf14f329da44ef5b750c8fb86e6b66ad4ce60 # v4.0.2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Terraform Init
+        if: steps.check-creds.outputs.configured == 'true'
+        run: terraform init
+
+      - name: Terraform Plan
+        if: steps.check-creds.outputs.configured == 'true'
+        id: plan
+        run: terraform plan -no-color
+
+      - name: Terraform Apply
+        if: steps.check-creds.outputs.configured == 'true'
+        run: terraform apply -auto-approve

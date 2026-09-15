@@ -9,6 +9,7 @@ data:
     apiVersion: 1
     datasources:
       - name: Prometheus
+        uid: Prometheus
         type: prometheus
         access: proxy
         url: http://prometheus:9090
@@ -16,12 +17,14 @@ data:
         editable: false
 
       - name: Jaeger
+        uid: Jaeger
         type: jaeger
         access: proxy
         url: http://jaeger:16686
         editable: false
 
       - name: Loki
+        uid: Loki
         type: loki
         access: proxy
         url: http://loki:3100

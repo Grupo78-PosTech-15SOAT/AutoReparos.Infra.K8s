@@ -42,6 +42,14 @@ spec:
             periodSeconds: 10
           resources:
             {{- toYaml .Values.otelCollector.resources | nindent 12 }}
+{{- if .Values.otelCollector.vendor.enabled }}
+          env:
+            - name: OTEL_VENDOR_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.otelCollector.vendor.existingSecret | quote }}
+                  key: {{ .Values.otelCollector.vendor.existingSecretKey | quote }}
+{{- end }}
           volumeMounts:
             - name: config
               mountPath: /etc/autoreparos-otel-collector-config.yaml

@@ -16,6 +16,17 @@ otelCollector:
     minReplicas: 1
     maxReplicas: 3
     targetCPUUtilizationPercentage: 80
+  # Exportacao adicional para backend de observabilidade em nuvem.
+  # Quando habilitado, os sinais seguem para o stack local E para o vendor.
+  # New Relic: endpoint otlp.nr-data.net:4317   / header api-key
+  # Datadog:   endpoint https://otlp.datadoghq.com:4317 / header dd-api-key
+  vendor:
+    enabled: false
+    endpoint: "otlp.nr-data.net:4317"
+    apiKeyHeader: "api-key"
+    # Secret do Kubernetes que guarda a license key (nao versionar a chave no chart).
+    existingSecret: "autoreparos-otel-vendor"
+    existingSecretKey: "license-key"
 
 prometheus:
   enabled: true
