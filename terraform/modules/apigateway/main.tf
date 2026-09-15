@@ -109,12 +109,13 @@ resource "aws_apigatewayv2_vpc_link" "eks_link" {
 
 # 4. Integração com a API Backend no cluster EKS (/api/{proxy+}) via VPC Link Privado
 resource "aws_apigatewayv2_integration" "eks_proxy" {
+  count                  = startswith(var.eks_ingress_url, "arn:aws:") ? 1 : 0
   api_id                 = aws_apigatewayv2_api.http_api.id
   integration_type       = "HTTP_PROXY"
   integration_method     = "ANY"
   connection_type        = "VPC_LINK"
   connection_id          = aws_apigatewayv2_vpc_link.eks_link.id
-  integration_uri        = startswith(var.eks_ingress_url, "arn:aws:") ? var.eks_ingress_url : "${var.eks_ingress_url}/api/{proxy}"
+  integration_uri        = var.eks_ingress_url
   payload_format_version = "1.0"
   description            = "Proxy HTTP privado via VPC Link para o Ingress NLB do EKS"
 
@@ -122,19 +123,21 @@ resource "aws_apigatewayv2_integration" "eks_proxy" {
 }
 
 resource "aws_apigatewayv2_route" "eks_proxy_route" {
+  count     = startswith(var.eks_ingress_url, "arn:aws:") ? 1 : 0
   api_id    = aws_apigatewayv2_api.http_api.id
   route_key = "ANY /api/{proxy+}"
-  target    = "integrations/${aws_apigatewayv2_integration.eks_proxy.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.eks_proxy[0].id}"
 }
 
 # 5. Rota Dedicada de Healthcheck (/health) via VPC Link
 resource "aws_apigatewayv2_integration" "health_check" {
+  count                  = startswith(var.eks_ingress_url, "arn:aws:") ? 1 : 0
   api_id                 = aws_apigatewayv2_api.http_api.id
   integration_type       = "HTTP_PROXY"
   integration_method     = "GET"
   connection_type        = "VPC_LINK"
   connection_id          = aws_apigatewayv2_vpc_link.eks_link.id
-  integration_uri        = startswith(var.eks_ingress_url, "arn:aws:") ? var.eks_ingress_url : "${var.eks_ingress_url}/health"
+  integration_uri        = var.eks_ingress_url
   payload_format_version = "1.0"
   description            = "Sondagem de integridade de ponta a ponta para o backend EKS"
 
@@ -142,7 +145,8 @@ resource "aws_apigatewayv2_integration" "health_check" {
 }
 
 resource "aws_apigatewayv2_route" "health_check_route" {
+  count     = startswith(var.eks_ingress_url, "arn:aws:") ? 1 : 0
   api_id    = aws_apigatewayv2_api.http_api.id
   route_key = "GET /health"
-  target    = "integrations/${aws_apigatewayv2_integration.health_check.id}"
+  target    = "integrations/${aws_apigatewayv2_integration.health_check[0].id}"
 }

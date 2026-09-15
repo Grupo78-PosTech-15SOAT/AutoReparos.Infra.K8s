@@ -40,6 +40,7 @@ api:
     targetMemoryUtilizationPercentage: 80
 
 database:
+  enabled: true
   image: postgres:16
   database: autoreparos
   user: admin
