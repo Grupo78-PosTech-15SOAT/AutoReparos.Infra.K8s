@@ -4,6 +4,16 @@ variable "environment" {
   default     = "production"
 }
 
+variable "vpc_id" {
+  description = "ID da VPC onde o Security Group do VPC Link será criado"
+  type        = string
+}
+
+variable "private_subnet_ids" {
+  description = "Lista de IDs das Subnets privadas onde o VPC Link será conectado"
+  type        = list(string)
+}
+
 variable "lambda_function_arn" {
   description = "ARN da AWS Lambda de autenticação de clientes (AutoReparos.AuthLambda)"
   type        = string
@@ -17,7 +27,7 @@ variable "lambda_function_name" {
 }
 
 variable "eks_ingress_url" {
-  description = "URL HTTP ou DNS do NLB/ALB do Ingress Controller do EKS para onde as rotas /api/* serão encaminhadas"
+  description = "ARN do Listener do NLB/ALB interno (recomendado para HTTP API VPC Link) ou URL DNS do Ingress Controller do EKS para onde as rotas /api/* e /health serão encaminhadas via VPC Link"
   type        = string
   default     = "http://localhost:8080"
 }

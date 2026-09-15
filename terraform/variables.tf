@@ -78,6 +78,6 @@ variable "lambda_function_name" {
 
 variable "eks_ingress_url" {
   type        = string
-  description = "URL do Ingress NLB do cluster EKS para proxy das requisições /api/*"
+  description = "ARN do Listener do NLB/ALB interno (recomendado para HTTP API VPC Link) ou URL DNS do Ingress Controller do EKS para onde as rotas /api/* e /health serão encaminhadas via VPC Link"
   default     = "http://localhost:8080"
 }

@@ -41,13 +41,15 @@ spec:
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: {{ .Values.config.aspnetcoreEnvironment | quote }}
+            {{- if not .Values.config.dbConnection }}
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Release.Name }}-database-secret
                   key: postgres-password
+            {{- end }}
             - name: ConnectionStrings__DbConnection
-              value: "Host={{ .Release.Name }}-database-service;Database=autoreparos;Username=admin;Password=$(POSTGRES_PASSWORD)"
+              value: {{ .Values.config.dbConnection | default (printf "Host=%s-database-service;Database=autoreparos;Username=admin;Password=$(POSTGRES_PASSWORD)" .Release.Name) | quote }}
 
             - name: Jwt__ExpiryHours
               valueFrom:

@@ -2,21 +2,30 @@
 # This file is used in the CI/CD pipeline to override local settings for cloud deployment.
 # Usage: helm upgrade --install autoreparos ./k8s -f ./k8s/values.yaml -f ./k8s/values-production.yaml --set secrets...
 
-image:
-  # Replace <aws_account_id> and <region> during pipeline execution or manually
-  repository: "<aws_account_id>.dkr.ecr.<region>.amazonaws.com/autoreparos-api"
-  pullPolicy: Always
+api:
+  image:
+    repository: "683444362184.dkr.ecr.us-east-1.amazonaws.com/autoreparos-api"
+    tag: "latest"
+    pullPolicy: Always
 
-postgres:
+  ingress:
+    hosts:
+      - host: ""  # Empty host enables wildcard routing to match the AWS Network Load Balancer (NLB) DNS
+        paths:
+          - path: /
+            pathType: Prefix
+
+  config:
+    aspnetcoreEnvironment: "Production"
+    dbConnection: "Host=autoreparos-rds-production.ccnc86qo683d.us-east-1.rds.amazonaws.com;Port=5432;Database=autoreparos_db;Username=autoreparos_admin;Password=Ug#0Qri*{824<*[OA%JP15(d;SSL Mode=Prefer;"
+
+  hpa:
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+database:
+  enabled: false
   persistence:
     storageClass: "gp3"
-
-ingress:
-  hosts:
-    - host: ""  # Empty host enables wildcard routing to match the AWS Network Load Balancer (NLB) DNS
-      paths:
-        - path: /
-          pathType: Prefix
-
-config:
-  aspnetcoreEnvironment: "Production"

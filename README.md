@@ -23,7 +23,7 @@ Ele atende integralmente aos requisitos da Fase 3 do Tech Challenge FIAP SOAT:
 
 ---
 
-## 2. Diagrama de Roteamento e Arquitetura de Nuvem
+## 2. Diagrama de Roteamento e Arquitetura de Nuvem (Zero-Trust)
 
 ```mermaid
 flowchart TD
@@ -32,22 +32,29 @@ flowchart TD
     subgraph APIGW["AWS API Gateway HTTP API v2"]
         RouteAuth["POST /auth/cliente"]
         RouteAPI["ANY /api/{proxy+}"]
+        RouteHealth["GET /health"]
     end
 
     subgraph Lambda["Serverless (AutoReparos.AuthLambda)"]
         AuthFunc["Lambda Function .NET 10<br/>Validação CPF & Emissão JWT"]
     end
 
+    subgraph VPCLinkArea ["Camada de Conectividade Privada"]
+        VPCLink["aws_apigatewayv2_vpc_link<br/>(Subnets Privadas K8s)"]
+    end
+
     subgraph EKS["AWS EKS Cluster (Subnets Privadas)"]
-        NLB["AWS NLB / Ingress NGINX"]
-        API["Pods AutoReparos.API (.NET 10)<br/>HPA: 2 a 4 réplicas"]
+        NLB["AWS NLB Interno / Ingress NGINX"]
+        API["Pods AutoReparos.API (.NET 10)<br/>HPA: 2 a 10 réplicas"]
         Web["Pods AutoReparos.Web (Angular 19)"]
         Otel["Otel Collector / Observability"]
     end
 
     Client --> APIGW
     RouteAuth --> AuthFunc
-    RouteAPI --> NLB
+    RouteAPI --> VPCLink
+    RouteHealth --> VPCLink
+    VPCLink --> NLB
     NLB --> API
     NLB --> Web
     API -.->|Traces/Métricas| Otel
@@ -163,12 +170,13 @@ docker-compose down
 ## 7. Integração Contínua (CI/CD)
 
 O repositório conta com pipeline automatizada no GitHub Actions (`.github/workflows/ci.yml`) com controle de concorrência e actions com commit SHA fixados:
-- `Terraform Format & Validate`: Verifica padrões de formatação HCL e integridade sintática dos módulos.
+- `Terraform Format & Validate`: Verifica padrões de formatação HCL e integridade sintática dos módulos de forma recursiva.
 - `Helm Lint`: Executa análise estática de todos os templates Helm garantindo validação de schemas e dependências.
+- `Terraform Plan & Apply`: Executado condicionalmente na branch `main` quando as credenciais AWS estiverem cadastradas nos Secrets da organização.
 
 ---
 
-## 8. Critérios da Banca FIAP (SOAT)
+## 8. Governança e Arquitetura Multi-Repo
 
-- **Colaborador Oficial:** O usuário `soat-architecture` está convidado como colaborador neste repositório.
-- **Isolamento Multi-Repo:** Repositório autônomo e focado em orquestração Kubernetes, provisionamento EKS e Gateway de roteamento de nuvem.
+- **Isolamento Multi-Repo:** Repositório autônomo e focado em orquestração Kubernetes, provisionamento EKS e Gateway de roteamento de nuvem, exportando parâmetros de rede via AWS SSM Parameter Store (`/autoreparos/{environment}/vpc_id`, `/autoreparos/{environment}/subnets/private`, `/autoreparos/{environment}/security-groups/eks-nodes` e `/autoreparos/{environment}/apigateway/endpoint`).
+- **Proteção de Branch:** Branch `main` protegida com obrigatoriedade de Pull Request, aprovação e status checks verdes antes do merge.

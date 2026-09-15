@@ -19,14 +19,14 @@ data:
           "collapsed": false,
           "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
           "id": 1,
-          "title": "Taxa de Requisições (RPS)",
+          "title": "Taxa de Requisições (RPS, média 5m)",
           "type": "stat",
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "targets": [
             {
               "datasource": { "type": "prometheus", "uid": "Prometheus" },
               "editorMode": "code",
-              "expr": "sum(rate(http_server_request_duration_seconds_count[1m]))",
+              "expr": "sum(rate(autoreparos_http_server_request_duration_seconds_count[5m]))",
               "legendFormat": "Req/sec",
               "range": true,
               "refId": "A"
@@ -37,14 +37,14 @@ data:
           "collapsed": false,
           "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
           "id": 2,
-          "title": "Latência Média (ms)",
+          "title": "Latência Média (ms, janela 5m)",
           "type": "stat",
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "targets": [
             {
               "datasource": { "type": "prometheus", "uid": "Prometheus" },
               "editorMode": "code",
-              "expr": "sum(rate(http_server_request_duration_seconds_sum[1m])) / sum(rate(http_server_request_duration_seconds_count[1m])) * 1000",
+              "expr": "sum(rate(autoreparos_http_server_request_duration_seconds_sum[5m])) / clamp_min(sum(rate(autoreparos_http_server_request_duration_seconds_count[5m])), 0.001) * 1000",
               "legendFormat": "ms",
               "range": true,
               "refId": "A"
@@ -62,7 +62,7 @@ data:
             {
               "datasource": { "type": "prometheus", "uid": "Prometheus" },
               "editorMode": "code",
-              "expr": "process_memory_working_set_bytes / 1024 / 1024",
+              "expr": "autoreparos_dotnet_process_memory_working_set_bytes / 1024 / 1024",
               "legendFormat": "MB",
               "range": true,
               "refId": "A"
@@ -73,14 +73,14 @@ data:
           "collapsed": false,
           "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
           "id": 4,
-          "title": "Erros HTTP 5xx",
+          "title": "Erros HTTP 5xx (taxa 5m)",
           "type": "stat",
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "targets": [
             {
               "datasource": { "type": "prometheus", "uid": "Prometheus" },
               "editorMode": "code",
-              "expr": "sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~\"5..\"}[1m]))",
+              "expr": "sum(rate(autoreparos_http_server_request_duration_seconds_count{http_response_status_code=~\"5..\"}[5m])) or vector(0)",
               "legendFormat": "5xx/sec",
               "range": true,
               "refId": "A"
@@ -98,7 +98,7 @@ data:
             {
               "datasource": { "type": "prometheus", "uid": "Prometheus" },
               "editorMode": "code",
-              "expr": "sum by (http_route, http_request_method) (rate(http_server_request_duration_seconds_count[1m]))",
+              "expr": "sum by (http_route, http_request_method) (rate(autoreparos_http_server_request_duration_seconds_count[5m]))",
               "legendFormat": "{{ "{{" }}http_request_method}} {{ "{{" }}http_route}}",
               "range": true,
               "refId": "A"
@@ -131,4 +131,856 @@ data:
       "timezone": "browser",
       "title": "AutoReparos .NET 10 API Overview",
       "uid": "autoreparos-dotnet-overview"
+    }
+  volume_diario.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "description": "Requisito 7 da Fase 3: volume diário de OS. Alimentado pelas métricas de negócio ordens_servico.criadas e ordens_servico.transicoes_status, emitidas pelo OrdemServicoMetricsInterceptor a cada commit bem-sucedido.",
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "id": 1,
+          "title": "Total de Ordens nos Últimos 30 Dias",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 8,
+            "x": 0,
+            "y": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(autoreparos_ordens_servico_criadas_total[30d]))",
+              "legendFormat": "Ordens",
+              "refId": "A",
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "description": "Soma das ordens criadas na janela de 30 dias."
+        },
+        {
+          "id": 2,
+          "title": "Ordens Criadas Hoje",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 8,
+            "x": 8,
+            "y": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(autoreparos_ordens_servico_criadas_total[1d]))",
+              "legendFormat": "Hoje",
+              "refId": "A",
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 3,
+          "title": "Ordens Criadas por Hora",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 8,
+            "x": 16,
+            "y": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(rate(autoreparos_ordens_servico_criadas_total[1h])) * 3600",
+              "legendFormat": "OS/h",
+              "refId": "A",
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            },
+            "overrides": []
+          }
+        },
+        {
+          "id": 4,
+          "title": "Volume Diário por Status",
+          "type": "barchart",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 5
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum by (status) (increase(autoreparos_ordens_servico_transicoes_status_total[1d]))",
+              "legendFormat": "{{ "{{" }}status}}",
+              "refId": "A",
+              "range": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "description": "Transições de status agregadas por dia. A tag `status` assume os valores: Recebida, EmDiagnostico, AguardandoAprovacao, EmExecucao, Finalizada, Entregue.",
+          "options": {
+            "stacking": "normal",
+            "xTickLabelRotation": 0,
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            }
+          }
+        },
+        {
+          "id": 5,
+          "title": "Evolução do Volume de Criação",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 24,
+            "x": 0,
+            "y": 15
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(autoreparos_ordens_servico_criadas_total[1d]))",
+              "legendFormat": "Criadas/dia",
+              "refId": "A",
+              "range": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            },
+            "overrides": []
+          }
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 39,
+      "tags": [
+        "autoreparos",
+        "fase3",
+        "negocio"
+      ],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-30d",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "AutoReparos - Volume Diário de Ordens de Serviço",
+      "uid": "autoreparos-volume-diario",
+      "version": 1,
+      "weekStart": ""
+    }
+  tempo_medio_status.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "description": "Requisito 7 da Fase 3: tempo médio em cada etapa da OS. Os histogramas são gravados pelo OrdemServicoMetricsInterceptor no instante da transição de status, a partir dos carimbos de tempo da própria ordem (DiagnosticoIniciadoEm, EnvioAprovacaoEm, IniciadoEm, FinalizadoEm, CriadoEm, EntregueEm). Valores exibidos em horas.",
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "id": 1,
+          "title": "Tempo Médio de Diagnóstico",
+          "type": "gauge",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 8,
+            "x": 0,
+            "y": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "(sum(increase(autoreparos_ordens_servico_tempo_diagnostico_seconds_sum[30d])) / clamp_min(sum(increase(autoreparos_ordens_servico_tempo_diagnostico_seconds_count[30d])), 1)) / 3600",
+              "legendFormat": "Diagnóstico",
+              "refId": "A",
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "h",
+              "min": 0,
+              "max": 48,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 8
+                  },
+                  {
+                    "color": "red",
+                    "value": 24
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "description": "EnvioAprovacaoEm - DiagnosticoIniciadoEm, média das amostras da janela."
+        },
+        {
+          "id": 2,
+          "title": "Tempo Médio de Execução",
+          "type": "gauge",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 8,
+            "x": 8,
+            "y": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "(sum(increase(autoreparos_ordens_servico_tempo_execucao_seconds_sum[30d])) / clamp_min(sum(increase(autoreparos_ordens_servico_tempo_execucao_seconds_count[30d])), 1)) / 3600",
+              "legendFormat": "Execução",
+              "refId": "A",
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "h",
+              "min": 0,
+              "max": 120,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 24
+                  },
+                  {
+                    "color": "red",
+                    "value": 72
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "description": "FinalizadoEm - IniciadoEm."
+        },
+        {
+          "id": 3,
+          "title": "Tempo Total de Permanência",
+          "type": "gauge",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 8,
+            "x": 16,
+            "y": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "(sum(increase(autoreparos_ordens_servico_tempo_permanencia_seconds_sum[30d])) / clamp_min(sum(increase(autoreparos_ordens_servico_tempo_permanencia_seconds_count[30d])), 1)) / 3600",
+              "legendFormat": "Permanência",
+              "refId": "A",
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "h",
+              "min": 0,
+              "max": 240,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "yellow",
+                    "value": 72
+                  },
+                  {
+                    "color": "red",
+                    "value": 168
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "description": "EntregueEm - CriadoEm: ciclo completo da OS na oficina."
+        },
+        {
+          "id": 4,
+          "title": "Evolução dos Tempos de Atendimento (média móvel semanal)",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 10,
+            "w": 24,
+            "x": 0,
+            "y": 7
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "(sum(increase(autoreparos_ordens_servico_tempo_diagnostico_seconds_sum[7d])) / clamp_min(sum(increase(autoreparos_ordens_servico_tempo_diagnostico_seconds_count[7d])), 1)) / 3600",
+              "legendFormat": "Diagnóstico",
+              "refId": "A",
+              "range": true
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "(sum(increase(autoreparos_ordens_servico_tempo_execucao_seconds_sum[7d])) / clamp_min(sum(increase(autoreparos_ordens_servico_tempo_execucao_seconds_count[7d])), 1)) / 3600",
+              "legendFormat": "Execução",
+              "refId": "B",
+              "range": true
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "(sum(increase(autoreparos_ordens_servico_tempo_permanencia_seconds_sum[7d])) / clamp_min(sum(increase(autoreparos_ordens_servico_tempo_permanencia_seconds_count[7d])), 1)) / 3600",
+              "legendFormat": "Permanência total",
+              "refId": "C",
+              "range": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "h"
+            },
+            "overrides": []
+          },
+          "description": "Janela deslizante de 7 dias sobre cada histograma."
+        },
+        {
+          "id": 5,
+          "title": "Percentil 95 por Etapa",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 17
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(autoreparos_ordens_servico_tempo_diagnostico_seconds_bucket[7d]))) / 3600",
+              "legendFormat": "p95 diagnóstico",
+              "refId": "A",
+              "range": true
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(autoreparos_ordens_servico_tempo_execucao_seconds_bucket[7d]))) / 3600",
+              "legendFormat": "p95 execução",
+              "refId": "B",
+              "range": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "h"
+            },
+            "overrides": []
+          },
+          "description": "Mostra a cauda longa que a média esconde: OS que travam em uma etapa."
+        },
+        {
+          "id": 6,
+          "title": "Amostras Coletadas por Etapa",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 24,
+            "x": 0,
+            "y": 25
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(autoreparos_ordens_servico_tempo_diagnostico_seconds_count[30d]))",
+              "legendFormat": "Diagnósticos concluídos",
+              "refId": "A",
+              "range": false,
+              "instant": true
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(autoreparos_ordens_servico_tempo_execucao_seconds_count[30d]))",
+              "legendFormat": "Execuções concluídas",
+              "refId": "B",
+              "range": false,
+              "instant": true
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(autoreparos_ordens_servico_tempo_permanencia_seconds_count[30d]))",
+              "legendFormat": "OS entregues",
+              "refId": "C",
+              "range": false,
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "description": "Número de OS que contribuíram para cada média, para contextualizar os gauges."
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 39,
+      "tags": [
+        "autoreparos",
+        "fase3",
+        "negocio"
+      ],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-30d",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "AutoReparos - Tempo Médio por Status da Ordem de Serviço",
+      "uid": "autoreparos-tempo-medio-status",
+      "version": 1,
+      "weekStart": ""
+    }
+  erros_integracoes.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "description": "Requisito 8 da Fase 3: detecção de falhas de integração e erros de servidor. Cobre o contador notificacoes.falhas (SendGrid), respostas 5xx da API e a latência das chamadas a banco e serviços externos.",
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "id": 1,
+          "title": "Taxa de Falhas de Notificação",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(rate(autoreparos_notificacoes_falhas_total[5m]))",
+              "legendFormat": "falhas/s",
+              "refId": "A",
+              "range": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "description": "rate(notificacoes.falhas[5m]); dispara o alerta CRITICAL quando > 0 por 3 minutos."
+        },
+        {
+          "id": 2,
+          "title": "Falhas por Canal e Motivo",
+          "type": "piechart",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum by (canal, tipo, motivo, status_code) (increase(autoreparos_notificacoes_falhas_total[24h]))",
+              "legendFormat": "{{ "{{" }}canal}} / {{ "{{" }}tipo}} / {{ "{{" }}motivo}}{{ "{{" }}status_code}}",
+              "refId": "A",
+              "range": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "description": "A tag motivo traz o tipo da exceção (ex.: HttpRequestException); status_code traz a resposta HTTP do SendGrid quando houve resposta."
+        },
+        {
+          "id": 3,
+          "title": "Respostas HTTP 5xx na API",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum by (http_route) (rate(autoreparos_http_server_request_duration_seconds_count{http_response_status_code=~\"5..\"}[5m]))",
+              "legendFormat": "{{ "{{" }}http_route}}",
+              "refId": "A",
+              "range": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "reqps"
+            },
+            "overrides": []
+          },
+          "description": "Erros de servidor por rota."
+        },
+        {
+          "id": 4,
+          "title": "Taxa de Erro Geral da API (%)",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 8
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "100 * (sum(rate(autoreparos_http_server_request_duration_seconds_count{http_response_status_code=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(autoreparos_http_server_request_duration_seconds_count[5m])), 0.001)",
+              "legendFormat": "taxa de erro",
+              "refId": "A",
+              "range": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "description": "O `or vector(0)` mantém a série em 0% quando não há nenhum 5xx, em vez de deixar o painel vazio. Base da política de alerta de taxa de erro."
+        },
+        {
+          "id": 5,
+          "title": "Latência p95 da API por Rota",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 16
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.95, sum by (le, http_route) (rate(autoreparos_http_server_request_duration_seconds_bucket[5m]))) * 1000",
+              "legendFormat": "{{ "{{" }}http_route}}",
+              "refId": "A",
+              "range": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "ms"
+            },
+            "overrides": []
+          },
+          "description": "Base da política de alerta de latência (limiar 2000 ms)."
+        },
+        {
+          "id": 6,
+          "title": "Latência de Comunicação com Banco e Serviços Externos",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 16
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(autoreparos_db_client_operation_duration_seconds_bucket[5m]))) * 1000",
+              "legendFormat": "p95 banco (Npgsql)",
+              "refId": "A",
+              "range": true
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.95, sum by (le, server_address) (rate(autoreparos_http_client_request_duration_seconds_bucket[5m]))) * 1000",
+              "legendFormat": "p95 {{ "{{" }}server_address}}",
+              "refId": "B",
+              "range": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "ms"
+            },
+            "overrides": []
+          },
+          "description": "HttpClient cobre SendGrid e demais integrações de saída; a série de banco depende do meter Npgsql registrado no MeterProvider."
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 39,
+      "tags": [
+        "autoreparos",
+        "fase3",
+        "confiabilidade"
+      ],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "AutoReparos - Erros e Falhas nas Integrações",
+      "uid": "autoreparos-erros-integracoes",
+      "version": 1,
+      "weekStart": ""
     }
