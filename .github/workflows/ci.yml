@@ -95,7 +95,7 @@ jobs:
 
       - name: Configure AWS Credentials
         if: steps.check-creds.outputs.configured == 'true'
-        uses: aws-actions/configure-aws-credentials@e3ddf14f329da44ef5b750c8fb86e6b66ad4ce60 # v4.0.2
+        uses: aws-actions/configure-aws-credentials@v4 # v4.0.2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
