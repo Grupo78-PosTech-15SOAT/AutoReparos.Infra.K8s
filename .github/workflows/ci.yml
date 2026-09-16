@@ -95,7 +95,9 @@ jobs:
 
       - name: Configure AWS Credentials
         if: steps.check-creds.outputs.configured == 'true'
+
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -105,11 +107,18 @@ jobs:
         if: steps.check-creds.outputs.configured == 'true'
         run: terraform init
 
+      - name: Configurar acesso ao EKS
+        if: steps.check-creds.outputs.configured == 'true'
+        run: |
+          aws eks update-kubeconfig \
+            --region us-east-1 \
+            --name autoreparos-cluster
+
       - name: Terraform Plan
         if: steps.check-creds.outputs.configured == 'true'
         id: plan
-        run: terraform plan -no-color
+        run: terraform plan -no-color -out=tfplan
 
       - name: Terraform Apply
         if: steps.check-creds.outputs.configured == 'true'
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve tfplan
