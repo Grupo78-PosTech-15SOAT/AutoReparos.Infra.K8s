@@ -20,8 +20,6 @@ spec:
         runAsGroup: 1654
         fsGroup: 1654
       containers:
-
-
         - name: {{ .Chart.Name }}
           securityContext:
             allowPrivilegeEscalation: false
@@ -41,16 +39,11 @@ spec:
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: {{ .Values.config.aspnetcoreEnvironment | quote }}
-            {{- if not .Values.config.dbConnection }}
-            - name: POSTGRES_PASSWORD
+            - name: ConnectionStrings__DbConnection
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Release.Name }}-database-secret
-                  key: postgres-password
-            {{- end }}
-            - name: ConnectionStrings__DbConnection
-              value: {{ .Values.config.dbConnection | default (printf "Host=%s-database-service;Database=autoreparos;Username=admin;Password=$(POSTGRES_PASSWORD)" .Release.Name) | quote }}
-
+                  name: {{ include "api.fullname" . }}-secrets
+                  key: ConnectionStrings__DbConnection
             - name: Jwt__ExpiryHours
               valueFrom:
                 configMapKeyRef:

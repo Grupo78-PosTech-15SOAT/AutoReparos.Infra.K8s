@@ -26,6 +26,8 @@ config:
   sendGridFromName: "AutoReparos"
 
 secrets:
+  create: true
+  dbConnection: ""
   jwtSecret: ""
   seedUserPassword: ""
   aprovacaoTokenSecret: ""

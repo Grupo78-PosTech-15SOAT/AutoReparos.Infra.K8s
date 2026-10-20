@@ -1,0 +1,173 @@
+name: Bootstrap - Importação de Recursos Existentes (Terraform State)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Digite "CONFIRMAR-IMPORT" para executar a importação do state para o S3 e DynamoDB'
+        required: true
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  import-state:
+    name: Importação Terraform State (S3 + DynamoDB)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./bootstrap
+
+    steps:
+      - name: Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: Validar Confirmação de Segurança
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "CONFIRMAR-IMPORT" ]; then
+            echo "::error::Confirmação inválida: '${{ github.event.inputs.confirm }}'."
+            echo "Para autorizar a importação do state, informe exatamente 'CONFIRMAR-IMPORT'."
+            exit 1
+          fi
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.0
+
+      - name: Validar Configuração OIDC
+        run: |
+          if [ -z "${{ secrets.AWS_ROLE_ARN }}" ]; then
+            echo "::error::Secret AWS_ROLE_ARN não configurado. Autenticação GitHub Actions OIDC requer a ARN da IAM Role configurada."
+            exit 1
+          fi
+
+      - name: Configurar Credenciais AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          audience: sts.amazonaws.com
+
+      - name: Validar Identidade AWS
+        run: |
+          echo "=========================================="
+          echo "   Validação de Identidade e Acesso AWS   "
+          echo "=========================================="
+          ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          ARN=$(aws sts get-caller-identity --query "Arn" --output text | sed 's/:[0-9]\{12\}:/:************:/g')
+          echo "AWS Account ID : $ACCOUNT_ID"
+          echo "AWS Identity   : $ARN"
+          echo "AWS Region     : ${{ vars.AWS_REGION || 'us-east-1' }}"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Importar Recursos Existentes para o Terraform State
+        env:
+          TF_VAR_aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          TF_VAR_environment: "production"
+          TF_VAR_project_name: "AutoReparos"
+        run: |
+          echo "=========================================="
+          echo "   Importação de Recursos Existentes      "
+          echo "=========================================="
+          BUCKET_NAME="autoreparos-terraform-state-backend"
+          TABLE_NAME="autoreparos-terraform-locks"
+          REGION="${{ vars.AWS_REGION || 'us-east-1' }}"
+          ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          DDB_ARN_PARAM="arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/${TABLE_NAME}"
+
+          import_resource() {
+            local target="$1"
+            local id="$2"
+
+            if terraform state list 2>/dev/null | grep -qx "$target"; then
+              echo " [INFO] Recurso '$target' já está presente no state. Pulando import."
+              return 0
+            fi
+
+            echo " [IMPORT] Importando '$target' com ID: '$id'..."
+            if terraform import "$target" "$id"; then
+              echo " [SUCESSO] '$target' importado com sucesso."
+            else
+              echo " [ERRO] Falha ao importar '$target'."
+              return 1
+            fi
+          }
+
+          # 1. S3 Bucket
+          echo "--- 1/7. Importando S3 Bucket ---"
+          import_resource "aws_s3_bucket.terraform_state" "$BUCKET_NAME"
+
+          # 2. S3 Bucket Versioning
+          echo "--- 2/7. Importando S3 Bucket Versioning ---"
+          import_resource "aws_s3_bucket_versioning.terraform_state_versioning" "$BUCKET_NAME"
+
+          # 3. S3 Public Access Block
+          echo "--- 3/7. Importando S3 Public Access Block ---"
+          import_resource "aws_s3_bucket_public_access_block.terraform_state_pab" "$BUCKET_NAME"
+
+          # 4. S3 Ownership Controls
+          echo "--- 4/7. Importando S3 Ownership Controls ---"
+          import_resource "aws_s3_bucket_ownership_controls.terraform_state_ownership" "$BUCKET_NAME"
+
+          # 5. S3 Bucket Server Side Encryption
+          echo "--- 5/7. Importando S3 Bucket Encryption ---"
+          import_resource "aws_s3_bucket_server_side_encryption_configuration.terraform_state_crypto" "$BUCKET_NAME"
+
+          # 6. S3 Bucket Policy
+          echo "--- 6/7. Validando e Importando S3 Bucket Policy ---"
+          if terraform state list 2>/dev/null | grep -qx "aws_s3_bucket_policy.enforce_tls"; then
+            echo " [INFO] Recurso de policy 'aws_s3_bucket_policy.enforce_tls' já consta no state."
+          else
+            if aws s3api get-bucket-policy --bucket "$BUCKET_NAME" >/dev/null 2>&1; then
+              import_resource "aws_s3_bucket_policy.enforce_tls" "$BUCKET_NAME" || true
+            else
+              echo " [INFO] Nenhuma Bucket Policy ativa encontrada no bucket S3 na AWS."
+            fi
+          fi
+
+          # 7. DynamoDB Table
+          echo "--- 7/7. Importando DynamoDB Table ---"
+          if terraform state list 2>/dev/null | grep -qx "aws_dynamodb_table.terraform_locks"; then
+            echo " [INFO] Recurso 'aws_dynamodb_table.terraform_locks' já está presente no state."
+          else
+            if ! terraform import "aws_dynamodb_table.terraform_locks" "$DDB_ARN_PARAM" 2>/dev/null; then
+              import_resource "aws_dynamodb_table.terraform_locks" "$TABLE_NAME"
+            fi
+          fi
+
+      - name: Listar Recursos Gerenciados no State
+        run: |
+          echo "=========================================="
+          echo "   Inventário Final do Terraform State    "
+          echo "=========================================="
+          terraform state list
+
+      - name: Terraform Plan (Validação pós-importação)
+        env:
+          TF_VAR_aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          TF_VAR_environment: "production"
+          TF_VAR_project_name: "AutoReparos"
+        run: |
+          echo "=========================================="
+          echo "   Validação do Plan pós-importação       "
+          echo "=========================================="
+          terraform plan -no-color
+
+      - name: Salvar State Importado como Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bootstrap-imported-tfstate
+          path: bootstrap/terraform.tfstate
+          retention-days: 14

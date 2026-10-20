@@ -17,6 +17,16 @@ on:
       - 'terraform/**'
       - 'k8s/**'
       - '.github/workflows/ci.yml'
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Digite "CONFIRMAR-APPLY" para autorizar o provisionamento do cluster EKS e VPC'
+        required: false
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   validate-terraform:
@@ -28,10 +38,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.8.0
 
@@ -50,75 +60,55 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@v4
 
       - name: Setup Helm
-        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+        uses: azure/setup-helm@v4
         with:
           version: v3.14.0
 
       - name: Lint Helm Chart
         run: helm lint k8s/
 
-  plan-and-apply:
-    name: Terraform Plan & Apply
+  plan:
+    name: Terraform Plan
     needs: [validate-terraform, lint-helm]
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./terraform
-    # Executa apenas quando for push na branch main
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: Check AWS Credentials
-        id: check-creds
-        run: |
-          if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::AWS credentials (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY) not configured in secrets. Skipping Terraform Plan & Apply."
-          fi
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        uses: actions/checkout@v4
 
       - name: Setup Terraform
-        if: steps.check-creds.outputs.configured == 'true'
-        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.8.0
 
-      - name: Configure AWS Credentials
-        if: steps.check-creds.outputs.configured == 'true'
+      - name: Validar Configuração OIDC
+        run: |
+          if [ -z "${{ secrets.AWS_ROLE_ARN }}" ]; then
+            echo "::error::Secret AWS_ROLE_ARN não configurado. Autenticação GitHub Actions OIDC requer a ARN da IAM Role configurada."
+            exit 1
+          fi
 
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
-
+      - name: Configurar Credenciais AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
+          audience: sts.amazonaws.com
 
-      - name: Terraform Init
-        if: steps.check-creds.outputs.configured == 'true'
+      - name: Terraform Init (Backend Remoto S3)
         run: terraform init
 
-      - name: Configurar acesso ao EKS
-        if: steps.check-creds.outputs.configured == 'true'
-        run: |
-          aws eks update-kubeconfig \
-            --region us-east-1 \
-            --name autoreparos-cluster
-
       - name: Terraform Plan
-        if: steps.check-creds.outputs.configured == 'true'
         id: plan
         run: terraform plan -no-color -out=tfplan
 
-      - name: Terraform Apply
-        if: steps.check-creds.outputs.configured == 'true'
+      - name: Terraform Apply (Apenas sob Confirmação Explícita)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'CONFIRMAR-APPLY'
         run: terraform apply -auto-approve tfplan

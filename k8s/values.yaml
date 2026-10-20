@@ -22,6 +22,8 @@ api:
     sendGridFromEmail: "noreply@autoreparos.com"
     sendGridFromName: "AutoReparos"
   secrets:
+    create: true
+    dbConnection: ""
     jwtSecret: ""
     seedUserPassword: ""
     aprovacaoTokenSecret: ""

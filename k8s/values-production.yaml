@@ -1,11 +1,12 @@
 # AWS EKS Production Overrides
 # This file is used in the CI/CD pipeline to override local settings for cloud deployment.
-# Usage: helm upgrade --install autoreparos ./k8s -f ./k8s/values.yaml -f ./k8s/values-production.yaml --set secrets...
+# NOTE: Sensitive values (database connection strings, JWT secrets, API keys, passwords)
+# MUST NOT be stored here. They are injected at deployment time via Kubernetes Secrets (secretKeyRef).
 
 api:
   image:
-    repository: "683444362184.dkr.ecr.us-east-1.amazonaws.com/autoreparos-api"
-    tag: "latest"
+    repository: ""  # Set by CI/CD via Helm --set api.image.repository
+    tag: ""         # Set by CI/CD via Helm --set api.image.tag
     pullPolicy: Always
 
   ingress:
@@ -17,13 +18,21 @@ api:
 
   config:
     aspnetcoreEnvironment: "Production"
-    dbConnection: "Host=autoreparos-rds-production.ccnc86qo683d.us-east-1.rds.amazonaws.com;Port=5432;Database=autoreparos_db;Username=autoreparos_admin;Password=Ug#0Qri*{824<*[OA%JP15(d;SSL Mode=Prefer;"
+
+  secrets:
+    create: false  # Production secrets are created securely via CI/CD (kubectl apply) or AWS Secrets Manager
 
   hpa:
     minReplicas: 2
     maxReplicas: 10
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
+
+web:
+  image:
+    repository: ""  # Set by CI/CD via Helm --set web.image.repository
+    tag: ""         # Set by CI/CD via Helm --set web.image.tag
+    pullPolicy: Always
 
 database:
   enabled: false

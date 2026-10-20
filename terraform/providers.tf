@@ -16,13 +16,14 @@ terraform {
     }
   }
 
-  # Backend S3 configurável
-  # backend "s3" {
-  #   bucket         = "autoreparos-terraform-state"
-  #   key            = "k8s/terraform.tfstate"
-  #   region         = "us-east-1"
-  #   dynamodb_table = "autoreparos-tflocks"
-  # }
+  # Backend S3 com State Locking via DynamoDB
+  backend "s3" {
+    bucket         = "autoreparos-terraform-state-backend"
+    key            = "k8s/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "autoreparos-terraform-locks"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
@@ -44,11 +45,15 @@ data "aws_eks_cluster_auth" "cluster" {
 }
 
 provider "kubernetes" {
-  config_path = "~/.kube/config"
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  token                  = data.aws_eks_cluster_auth.cluster.token
 }
 
 provider "helm" {
   kubernetes = {
-    config_path = "~/.kube/config"
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    token                  = data.aws_eks_cluster_auth.cluster.token
   }
 }

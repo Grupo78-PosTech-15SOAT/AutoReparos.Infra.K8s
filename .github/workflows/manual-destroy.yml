@@ -1,0 +1,114 @@
+name: Teardown Manual - Infra.K8s & Cluster EKS
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Digite exatamente "CONFIRMAR-DESTRUICAO" para autorizar o teardown do cluster'
+        required: true
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: "us-east-1"
+
+jobs:
+  manual-destroy:
+    name: Teardown Manual Controlado (EKS & K8s)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validar Confirmação de Segurança
+        run: |
+          echo "=========================================="
+          echo "   Validação de Confirmação para Teardown "
+          echo "=========================================="
+          if [ "${{ github.event.inputs.confirm }}" != "CONFIRMAR-DESTRUICAO" ]; then
+            echo "::error::[ABORTADO] Token de confirmação inválido: '${{ github.event.inputs.confirm }}'."
+            echo "Para autorizar a destruição, informe exatamente 'CONFIRMAR-DESTRUICAO'."
+            exit 1
+          fi
+          echo "Confirmação válida recebida ('CONFIRMAR-DESTRUICAO'). Prosseguindo com o teardown seguro."
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.0
+
+      - name: Validar Configuração OIDC
+        run: |
+          if [ -z "${{ secrets.AWS_ROLE_ARN }}" ]; then
+            echo "::error::Secret AWS_ROLE_ARN não configurado. Autenticação GitHub Actions OIDC requer a ARN da IAM Role configurada."
+            exit 1
+          fi
+
+      - name: Configurar Credenciais AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Terraform Init (Backend Remoto S3)
+        run: terraform init
+
+      - name: Obter Identificadores de Infraestrutura
+        id: infra-info
+        run: |
+          CLUSTER_NAME=$(terraform output -raw cluster_name 2>/dev/null || echo "")
+          VPC_ID=$(terraform output -raw vpc_id 2>/dev/null || echo "")
+          echo "cluster_name=$CLUSTER_NAME" >> $GITHUB_OUTPUT
+          echo "vpc_id=$VPC_ID" >> $GITHUB_OUTPUT
+          echo "Cluster Name : $CLUSTER_NAME"
+          echo "VPC ID       : $VPC_ID"
+
+      - name: Conectar ao Cluster EKS
+        if: steps.infra-info.outputs.cluster_name != ''
+        run: |
+          aws eks update-kubeconfig --name "${{ steps.infra-info.outputs.cluster_name }}" --region ${{ env.AWS_REGION }} || true
+
+      - name: Desinstalar Recursos Kubernetes e Helm
+        if: steps.infra-info.outputs.cluster_name != ''
+        run: |
+          if kubectl cluster-info >/dev/null 2>&1; then
+            echo "Conectado ao cluster. Removendo releases Helm..."
+            helm uninstall autoreparos --wait || true
+            helm uninstall ingress-nginx -n ingress-nginx --wait || true
+            helm uninstall prometheus -n monitoring --wait || true
+
+            echo "Removendo Ingresses e Services LoadBalancer remanescentes..."
+            kubectl delete ingress --all --all-namespaces --timeout=60s || true
+            kubectl delete svc --all-namespaces -l app.kubernetes.io/name=ingress-nginx --timeout=60s || true
+          else
+            echo "Não foi possível conectar ao cluster Kubernetes. Pulando etapa de limpeza do Helm."
+          fi
+
+      - name: Aguardar Liberação de Load Balancers e ENIs da AWS
+        if: steps.infra-info.outputs.vpc_id != ''
+        run: |
+          VPC_ID="${{ steps.infra-info.outputs.vpc_id }}"
+          echo "Aguardando deleção dos Load Balancers na VPC $VPC_ID..."
+          TIMEOUT=300
+          ELAPSED=0
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            LBS=$(aws elbv2 describe-load-balancers --query "LoadBalancers[?VpcId=='$VPC_ID'].LoadBalancerArn" --output text 2>/dev/null || echo "")
+            if [ -z "$LBS" ]; then
+              echo "Todos os Load Balancers foram removidos."
+              break
+            fi
+            echo "Aguardando remoção de: $LBS"
+            sleep 10
+            ELAPSED=$((ELAPSED + 10))
+          done
+
+      - name: Terraform Destroy (Teardown do Cluster & VPC)
+        run: terraform destroy -auto-approve

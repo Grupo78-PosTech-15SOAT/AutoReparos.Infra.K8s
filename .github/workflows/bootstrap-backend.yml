@@ -1,0 +1,119 @@
+name: Bootstrap - Backend Remoto Terraform (S3 & DynamoDB)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Digite "CONFIRMAR-BOOTSTRAP" para executar o apply e provisionar o S3 e DynamoDB'
+        required: true
+        default: ''
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Bootstrap Backend Remoto (S3 + DynamoDB)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.0
+
+      - name: Validar Configuração OIDC
+        run: |
+          if [ -z "${{ secrets.AWS_ROLE_ARN }}" ]; then
+            echo "::error::Secret AWS_ROLE_ARN não configurado. Autenticação GitHub Actions OIDC requer a ARN da IAM Role configurada."
+            exit 1
+          fi
+
+      - name: Configurar Credenciais AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          audience: sts.amazonaws.com
+
+      - name: Validar Identidade AWS
+        run: |
+          echo "=========================================="
+          echo "   Validação de Identidade e Acesso AWS   "
+          echo "=========================================="
+          ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          ARN=$(aws sts get-caller-identity --query "Arn" --output text | sed 's/:[0-9]\{12\}:/:************:/g')
+          echo "AWS Account ID : $ACCOUNT_ID"
+          echo "AWS Identity   : $ARN"
+          echo "AWS Region     : ${{ vars.AWS_REGION || 'us-east-1' }}"
+
+      - name: Pré-checagem de Existência dos Recursos de Backend
+        run: |
+          echo "=========================================="
+          echo "   Pré-checagem de Recursos S3 / DynamoDB  "
+          echo "=========================================="
+          BUCKET_NAME="autoreparos-terraform-state-backend"
+          TABLE_NAME="autoreparos-terraform-locks"
+          REGION="${{ vars.AWS_REGION || 'us-east-1' }}"
+
+          echo "Verificando bucket S3 '$BUCKET_NAME'..."
+          if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+            echo " [INFO] O bucket S3 '$BUCKET_NAME' já existe e pertence à conta autenticada."
+          else
+            HEAD_OUTPUT=$(aws s3api head-bucket --bucket "$BUCKET_NAME" 2>&1 || true)
+            if echo "$HEAD_OUTPUT" | grep -q "403"; then
+              echo " [ERRO FATAL] O bucket S3 '$BUCKET_NAME' existe em outra conta AWS! Conflito de nome global."
+              exit 1
+            else
+              echo " [INFO] O bucket S3 '$BUCKET_NAME' não existe e será provisionado pelo Terraform."
+            fi
+          fi
+
+          echo "Verificando tabela DynamoDB '$TABLE_NAME'..."
+          if aws dynamodb describe-table --table-name "$TABLE_NAME" --region "$REGION" 2>/dev/null; then
+            echo " [INFO] A tabela DynamoDB '$TABLE_NAME' já existe na região $REGION."
+          else
+            echo " [INFO] A tabela DynamoDB '$TABLE_NAME' não existe e será provisionada pelo Terraform."
+          fi
+
+      - name: Terraform Format Check
+        working-directory: ./bootstrap
+        run: terraform fmt -check
+
+      - name: Terraform Init (Backend Local)
+        working-directory: ./bootstrap
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: ./bootstrap
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ./bootstrap
+        env:
+          TF_VAR_aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          TF_VAR_environment: "production"
+          TF_VAR_project_name: "AutoReparos"
+        run: terraform plan -out=tfplan
+
+      - name: Avaliar Confirmação para Apply
+        id: check-confirm
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" == "CONFIRMAR-BOOTSTRAP" ]; then
+            echo "apply_allowed=true" >> $GITHUB_OUTPUT
+            echo " Confirmação válida recebida ('CONFIRMAR-BOOTSTRAP'). Prosseguindo com o provisionamento."
+          else
+            echo "apply_allowed=false" >> $GITHUB_OUTPUT
+            echo " [AVISO] Confirmação não fornecida ou inválida: '${{ github.event.inputs.confirm }}'."
+            echo " O plano Terraform foi gerado e validado com sucesso, mas o apply NÃO será executado."
+            echo " Para efetuar o provisionamento, execute manualmente o workflow digitando 'CONFIRMAR-BOOTSTRAP'."
+          fi
+
+      - name: Terraform Apply (Bootstrap Backend)
+        if: steps.check-confirm.outputs.apply_allowed == 'true'
+        working-directory: ./bootstrap
+        run: terraform apply -auto-approve tfplan
