@@ -3,6 +3,10 @@
 # NOTE: Sensitive values (database connection strings, JWT secrets, API keys, passwords)
 # MUST NOT be stored here. They are injected at deployment time via Kubernetes Secrets (secretKeyRef).
 
+ingress:
+  enabled: true
+  className: alb
+
 api:
   image:
     repository: ""  # Set by CI/CD via Helm --set api.image.repository
@@ -10,6 +14,7 @@ api:
     pullPolicy: Always
 
   ingress:
+    enabled: false
     hosts:
       - host: ""  # Empty host enables wildcard routing to match the AWS Network Load Balancer (NLB) DNS
         paths:
@@ -33,6 +38,9 @@ web:
     repository: ""  # Set by CI/CD via Helm --set web.image.repository
     tag: ""         # Set by CI/CD via Helm --set web.image.tag
     pullPolicy: Always
+  config:
+    apiUrl: ""
+    otelCollectorHost: "autoreparos-otel-collector"
 
 database:
   enabled: false

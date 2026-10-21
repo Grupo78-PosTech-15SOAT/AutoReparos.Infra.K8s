@@ -9,6 +9,10 @@ service:
   type: ClusterIP
   port: 80
 
+config:
+  apiUrl: ""
+  otelCollectorHost: "autoreparos-otel-collector"
+
 resources:
   requests:
     cpu: 50m

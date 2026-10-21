@@ -1,3 +1,7 @@
+ingress:
+  enabled: true
+  className: alb
+
 api:
   replicaCount: 1
   image:
@@ -8,7 +12,7 @@ api:
     type: ClusterIP
     port: 8080
   ingress:
-    enabled: true
+    enabled: false
     className: nginx
     hosts:
       - host: ""
@@ -68,6 +72,9 @@ web:
   service:
     type: ClusterIP
     port: 80
+  config:
+    apiUrl: ""
+    otelCollectorHost: "autoreparos-otel-collector"
   resources:
     requests:
       cpu: 50m
