@@ -8,6 +8,15 @@ terraform {
     }
   }
 
+  # Partial backend configuration: the first run uses local state with
+  # `terraform init -backend=false`, then migrates it to this S3 backend.
+  backend "s3" {
+    key            = "bootstrap/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "autoreparos-terraform-locks"
+    encrypt        = true
+  }
+
   # IMPORTANTE: Backend LOCAL deliberado.
   # O bootstrap cria o bucket S3 e a tabela DynamoDB que servirão como backend remoto
   # para a infraestrutura principal (VPC, EKS, RDS, Lambda).

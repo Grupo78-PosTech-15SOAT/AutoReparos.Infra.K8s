@@ -6,8 +6,7 @@ resource "aws_ecr_repository" "api" {
     scan_on_push = true
   }
 
-  # Enable automatic deletion of images upon destroying the repository
-  force_delete = true
+  force_delete = false
 
 
   tags = {

@@ -3,7 +3,7 @@ output "ebs_csi_addon_arn" {
   description = "ARN of the EBS CSI driver addon"
 }
 
-output "nginx_ingress_status" {
-  value       = helm_release.nginx_ingress.status
-  description = "Status of the Nginx Ingress helm release"
+output "load_balancer_controller_status" {
+  value       = helm_release.aws_load_balancer_controller.status
+  description = "Status of the AWS Load Balancer Controller release"
 }

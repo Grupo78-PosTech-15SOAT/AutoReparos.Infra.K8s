@@ -1,5 +1,6 @@
 aws_region   = "us-east-1"
 cluster_name = "autoreparos-cluster"
+kubernetes_version = "1.35"
 environment  = "production"
 
 vpc_cidr             = "10.0.0.0/16"
@@ -12,7 +13,8 @@ desired_size   = 2
 max_size       = 4
 min_size       = 2
 
-# ARN e nome da Lambda para integração no API Gateway HTTP v2
-lambda_function_arn  = "arn:aws:lambda:us-east-1:123456789012:function:autoreparos-auth-lambda-production"
-lambda_function_name = "autoreparos-auth-lambda-production"
-eks_ingress_url      = "http://k8s-ingress-nlb-1234567890.us-east-1.elb.amazonaws.com"
+# Populated after the Lambda and internal ALB listener exist. The centralized
+# workflow uses the separate gateway stack and passes the listener ARN.
+lambda_function_arn  = ""
+lambda_function_name = ""
+eks_ingress_url      = ""

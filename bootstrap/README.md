@@ -35,18 +35,16 @@ Para evitar **dependência circular** (o problema do *ovo e da galinha*):
 ## 🚀 Como Executar
 
 ### Via GitHub Actions (Recomendado)
-Execute a action manual:
-- **Workflow:** `.github/workflows/bootstrap-backend.yml`
+Execute o workflow central no repositório pai:
+- **Workflow:** `Bootstrap AWS Terraform backend` (`AutoReparos/.github/workflows/bootstrap-aws.yml`)
+- **Environment:** `aws-bootstrap`
 - **Parâmetro de confirmação:** `CONFIRMAR-BOOTSTRAP`
 
-Se os recursos já existirem na AWS e precisarem ser integrados ao state:
-- **Workflow:** `.github/workflows/import-bootstrap-state.yml`
-- **Parâmetro de confirmação:** `CONFIRMAR-IMPORT`
+O workflow lê o state remoto se já existir. Se a criação anterior parou parcialmente, importa o bucket/tabela configurados e suas configurações existentes antes de reconciliar. Um nome coincidente não é tratado como prova de propriedade: preencha o inventário e confirme a conta antes de executar.
 
 ### Execução Local (Opcional)
 ```bash
 cd bootstrap
-terraform init
-terraform plan
-terraform apply
+terraform init -backend=false
+# O workflow central aplica e migra o state local para bootstrap/terraform.tfstate.
 ```
