@@ -1,14 +1,14 @@
 terraform {
   required_version = ">= 1.10.0"
   required_providers {
-    aws = { source = "hashicorp/aws", version = "~> 5.0" }
+    aws        = { source = "hashicorp/aws", version = "~> 5.0" }
     kubernetes = { source = "hashicorp/kubernetes", version = "~> 3.2" }
-    helm = { source = "hashicorp/helm", version = "~> 3.3" }
+    helm       = { source = "hashicorp/helm", version = "~> 3.3" }
   }
   backend "s3" {
     key            = "platform/production/terraform.tfstate"
     dynamodb_table = "autoreparos-terraform-locks"
-    encrypt         = true
+    encrypt        = true
   }
 }
 

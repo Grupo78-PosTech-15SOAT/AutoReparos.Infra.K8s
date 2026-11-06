@@ -16,11 +16,11 @@ provider "helm" {
 }
 
 module "addons" {
-  source            = "../../modules/addons"
-  cluster_name      = var.cluster_name
+  source             = "../../modules/addons"
+  cluster_name       = var.cluster_name
   kubernetes_version = var.kubernetes_version
-  aws_region        = var.aws_region
-  vpc_id            = var.vpc_id
-  oidc_provider_arn = var.oidc_provider_arn
-  oidc_provider_url = var.oidc_provider_url
+  aws_region         = var.aws_region
+  vpc_id             = var.vpc_id
+  oidc_provider_arn  = var.oidc_provider_arn
+  oidc_provider_url  = var.oidc_provider_url
 }
