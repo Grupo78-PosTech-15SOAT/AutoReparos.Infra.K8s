@@ -29,12 +29,12 @@ module "eks" {
 module "addons" {
   source = "./modules/addons"
 
-  cluster_name      = module.eks.cluster_name
+  cluster_name       = module.eks.cluster_name
   kubernetes_version = var.kubernetes_version
-  aws_region        = var.aws_region
-  vpc_id            = module.vpc.vpc_id
-  oidc_provider_arn = module.eks.oidc_provider_arn
-  oidc_provider_url = module.eks.oidc_provider_url
+  aws_region         = var.aws_region
+  vpc_id             = module.vpc.vpc_id
+  oidc_provider_arn  = module.eks.oidc_provider_arn
+  oidc_provider_url  = module.eks.oidc_provider_url
 
   depends_on = [module.eks]
 }

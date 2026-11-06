@@ -1,5 +1,5 @@
 module "api_gateway" {
-  source = "../../modules/apigateway"
+  source               = "../../modules/apigateway"
   environment          = var.environment
   vpc_id               = var.vpc_id
   private_subnet_ids   = var.private_subnet_ids
