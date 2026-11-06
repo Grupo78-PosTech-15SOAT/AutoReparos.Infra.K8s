@@ -3,7 +3,7 @@
 > **Projeto:** AutoReparos - Sistema Integrado de Oficina Mecânica  
 > **Fase:** Fase 3 Tech Challenge (13SOAT / 15SOAT FIAP)  
 > **Componente Obrigatório:** Repositório 2/4 da Arquitetura Multi-Repo  
-> **Tecnologias:** Terraform >= 1.7, AWS EKS, AWS API Gateway HTTP API v2, Helm 3, NGINX Ingress, HPA, OpenTelemetry.  
+> **Tecnologias:** Terraform >= 1.10, AWS EKS, AWS API Gateway HTTP API v2, Helm 3, AWS Load Balancer Controller, HPA, OpenTelemetry.
 > **Repositório Oficial:** [Grupo78-PosTech-15SOAT/AutoReparos.Infra.K8s](https://github.com/Grupo78-PosTech-15SOAT/AutoReparos.Infra.K8s)
 
 ---
@@ -110,13 +110,15 @@ AutoReparos.Infra.K8s/
 | `min_size` | `number` | `2` | Limite mínimo de nós |
 | `lambda_function_arn` | `string` | `""` | ARN da Lambda para rota `/auth/cliente` |
 | `lambda_function_name` | `string` | `""` | Nome da Lambda para concessão de permissão |
-| `eks_ingress_url` | `string` | `"http://localhost:8080"` | URL de destino do Ingress NLB |
+| `eks_ingress_url` | `string` | `""` | ARN do listener ALB interno, consumido apenas pelo state `gateway` |
 
 ---
 
 ## 5. Deploy e Operação
 
 ### Provisionamento da Infraestrutura com Terraform
+
+O provisionamento AWS é executado pelos workflows do repositório pai. Não execute `terraform apply` nesta raiz legada: o state reúne recursos de vários proprietários e a migração exige inventário e transferência revisados. Consulte `terraform/stacks/{base,platform,gateway}` para os novos roots e o plano de migração antes de qualquer mudança.
 
 ```bash
 cd terraform/
@@ -172,11 +174,38 @@ docker-compose down
 O repositório conta com pipeline automatizada no GitHub Actions (`.github/workflows/ci.yml`) com controle de concorrência e actions com commit SHA fixados:
 - `Terraform Format & Validate`: Verifica padrões de formatação HCL e integridade sintática dos módulos de forma recursiva.
 - `Helm Lint`: Executa análise estática de todos os templates Helm garantindo validação de schemas e dependências.
-- `Terraform Plan & Apply`: Executado condicionalmente na branch `main` quando as credenciais AWS estiverem cadastradas nos Secrets da organização.
+- Não há workflow neste submódulo que aplique ou destrua infraestrutura. Os workflows do repositório pai são os únicos escritores dos states de produção.
 
 ---
 
 ## 8. Governança e Arquitetura Multi-Repo
+
+### Provisionamento centralizado pelo repositório pai
+
+Este repositório mantém Terraform e Helm; ele não executa mais `apply`, `destroy` nem bootstrap por GitHub Actions. O workflow de CI valida Terraform e Helm sem credenciais AWS. Os workflows com credenciais vivem no pai `AutoReparos` e usam estes states:
+
+- `network/production/terraform.tfstate`: VPC, EKS, ECR API/Web e SG compartilhado da Lambda.
+- `platform/production/terraform.tfstate`: addons EKS, storage class e AWS Load Balancer Controller.
+- `gateway/production/terraform.tfstate`: API Gateway HTTP API, VPC Link, integrações e rotas.
+
+O state legado `terraform/` contém recursos misturados. Ele fica congelado até que o inventário e a transferência descritos em [`migracao-states-aws.md`](../../../../docs/specs/fase3/cloud-iac/migracao-states-aws.md) sejam concluídos. Não inicialize os novos states sobre recursos que ainda estejam no legado. O parent workflow bloqueia se ainda encontrar recursos no state legado ou recursos homônimos sem state proprietário.
+
+EKS usa versão 1.35; a versão PostgreSQL é mantida pelo state Database. O chart usa namespace informado pelo release (`autoreparos` em produção), um ALB interno gerenciado por AWS Load Balancer Controller e integração HTTP API com payload 1.0 para o handler Lambda `APIGatewayProxyRequest`. Web/API têm health checks próprios. Grafana é ClusterIP; o secret `autoreparos-grafana-admin` é criado em runtime e o acesso inicial é via port-forward.
+
+Os workflows `Provision AWS`, `Deploy application` e `Teardown AWS` no pai têm Environment `production`, OIDC, aprovação do GitHub e grupo de concorrência único. Alterações no submódulo devem ser publicadas na branch de trabalho correspondente e depois incorporadas pelo ponteiro do pai antes de executar Actions; o checkout usa os commits registrados no pai.
+
+### Validação local
+
+```bash
+terraform -chdir=terraform/stacks/base init -backend=false
+terraform -chdir=terraform/stacks/base validate
+terraform -chdir=terraform/stacks/platform init -backend=false
+terraform -chdir=terraform/stacks/platform validate
+terraform -chdir=terraform/stacks/gateway init -backend=false
+terraform -chdir=terraform/stacks/gateway validate
+helm lint k8s/
+helm template autoreparos k8s/ --namespace autoreparos -f k8s/values-production.yaml
+```
 
 - **Isolamento Multi-Repo:** Repositório autônomo e focado em orquestração Kubernetes, provisionamento EKS e Gateway de roteamento de nuvem, exportando parâmetros de rede via AWS SSM Parameter Store (`/autoreparos/{environment}/vpc_id`, `/autoreparos/{environment}/subnets/private`, `/autoreparos/{environment}/security-groups/eks-nodes` e `/autoreparos/{environment}/apigateway/endpoint`).
 - **Proteção de Branch:** Branch `main` protegida com obrigatoriedade de Pull Request, aprovação e status checks verdes antes do merge.

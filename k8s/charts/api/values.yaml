@@ -25,7 +25,12 @@ config:
   sendGridFromEmail: "noreply@autoreparos.com"
   sendGridFromName: "AutoReparos"
 
+database:
+  skipStartupMigration: false
+
 secrets:
+  create: false
+  dbConnection: ""
   jwtSecret: ""
   seedUserPassword: ""
   aprovacaoTokenSecret: ""
