@@ -3,6 +3,12 @@ variable "cluster_name" {
   description = "Name of the EKS cluster"
 }
 
+variable "kubernetes_version" {
+  description = "EKS Kubernetes version; check regional availability before applying"
+  type        = string
+  default     = "1.35"
+}
+
 variable "vpc_id" {
   type        = string
   description = "ID of the VPC"

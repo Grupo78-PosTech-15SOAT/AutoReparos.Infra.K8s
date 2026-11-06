@@ -43,10 +43,15 @@ resource "aws_iam_role_policy_attachment" "ebs_csi" {
 # -------------------------------------------------------------
 # EKS Addon: AWS EBS CSI Driver
 # -------------------------------------------------------------
+data "aws_eks_addon_version" "ebs_csi" {
+  addon_name         = "aws-ebs-csi-driver"
+  kubernetes_version = var.kubernetes_version
+}
+
 resource "aws_eks_addon" "ebs_csi" {
   cluster_name             = var.cluster_name
   addon_name               = "aws-ebs-csi-driver"
-  addon_version            = "v1.39.0-eksbuild.1" # Standard active stable addon version
+  addon_version            = data.aws_eks_addon_version.ebs_csi.version
   service_account_role_arn = aws_iam_role.ebs_csi.arn
 
   depends_on = [
@@ -93,75 +98,5 @@ resource "helm_release" "metrics_server" {
   ]
 }
 
-# -------------------------------------------------------------
-# Helm Release: Nginx Ingress Controller
-# -------------------------------------------------------------
-resource "helm_release" "nginx_ingress" {
-  name             = "ingress-nginx"
-  repository       = "https://kubernetes.github.io/ingress-nginx"
-  chart            = "ingress-nginx"
-  version          = "4.11.3"
-  namespace        = "ingress-nginx"
-  create_namespace = true
-
-  # Optimizing ELB parameters for AWS
-  set = [
-    {
-      name  = "controller.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-type"
-      value = "nlb"
-    }
-  ]
-}
-
-# -------------------------------------------------------------
-# Helm Release: kube-prometheus-stack (Prometheus & Grafana)
-# -------------------------------------------------------------
-resource "helm_release" "prometheus_stack" {
-  name             = "prometheus"
-  repository       = "https://prometheus-community.github.io/helm-charts"
-  chart            = "kube-prometheus-stack"
-  version          = "65.5.0"
-  namespace        = "monitoring"
-  create_namespace = true
-
-  # Optimizing resource requests for t3.small
-  values = [
-    <<-EOT
-    prometheus:
-      prometheusSpec:
-        resources:
-          requests:
-            cpu: 100m
-            memory: 512Mi
-          limits:
-            cpu: 500m
-            memory: 1024Mi
-        retention: 2d
-        storageSpec:
-          volumeClaimTemplate:
-            spec:
-              storageClassName: gp3
-              accessModes: ["ReadWriteOnce"]
-              resources:
-                requests:
-                  storage: 5Gi
-    grafana:
-      adminPassword: "admin"
-      service:
-        type: LoadBalancer
-        annotations:
-          service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-      persistence:
-        enabled: true
-        storageClassName: gp3
-        size: 2Gi
-    alertmanager:
-      enabled: false
-    EOT
-  ]
-
-  depends_on = [
-    aws_eks_addon.ebs_csi,
-    kubernetes_storage_class_v1.gp3
-  ]
-}
+# The local observability Helm chart is the single owner of Prometheus/Grafana.
+# Access Grafana with kubectl port-forward; never provision an internet-facing LB.

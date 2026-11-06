@@ -15,6 +15,7 @@ module "eks" {
   source = "./modules/eks"
 
   cluster_name       = var.cluster_name
+  kubernetes_version = var.kubernetes_version
   vpc_id             = module.vpc.vpc_id
   private_subnet_ids = module.vpc.private_subnet_ids
   instance_types     = var.instance_types
@@ -28,9 +29,12 @@ module "eks" {
 module "addons" {
   source = "./modules/addons"
 
-  cluster_name      = module.eks.cluster_name
-  oidc_provider_arn = module.eks.oidc_provider_arn
-  oidc_provider_url = module.eks.oidc_provider_url
+  cluster_name       = module.eks.cluster_name
+  kubernetes_version = var.kubernetes_version
+  aws_region         = var.aws_region
+  vpc_id             = module.vpc.vpc_id
+  oidc_provider_arn  = module.eks.oidc_provider_arn
+  oidc_provider_url  = module.eks.oidc_provider_url
 
   depends_on = [module.eks]
 }
@@ -43,7 +47,42 @@ module "ecr" {
   environment     = var.environment
 }
 
-# 5. AWS API Gateway v2 (HTTP API com VPC Link Privado: /auth/cliente -> Lambda, /api/* e /health -> EKS)
+module "ecr_web" {
+  source = "./modules/ecr"
+
+  repository_name = "autoreparos-web"
+  environment     = var.environment
+}
+
+# Shared Lambda security group is owned by the base network layer so RDS can
+# authorize it before the Lambda stack is deployed.
+resource "aws_security_group" "lambda" {
+  name        = "autoreparos-auth-lambda-sg-${var.environment}"
+  description = "Shared egress-only security group for AutoReparos authentication Lambda"
+  vpc_id      = module.vpc.vpc_id
+
+  egress {
+    description = "TLS egress to AWS services and Secrets Manager"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "PostgreSQL egress to the private RDS instance"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  tags = { Name = "autoreparos-auth-lambda-sg-${var.environment}" }
+}
+
+# API Gateway currently remains in this legacy state until an inventory-backed
+# state transfer is approved. Do not apply the new stack alongside this root.
+# 6. AWS API Gateway v2 (legacy ownership)
 module "apigateway" {
   source = "./modules/apigateway"
 
@@ -55,7 +94,7 @@ module "apigateway" {
   eks_ingress_url      = var.eks_ingress_url
 }
 
-# 6. Publicação de Parâmetros de Rede no AWS SSM Parameter Store para Desacoplamento Multi-Repo
+# 7. Publicação de Parâmetros de Rede no AWS SSM Parameter Store para Desacoplamento Multi-Repo
 resource "aws_ssm_parameter" "vpc_id" {
   name        = "/autoreparos/${var.environment}/vpc_id"
   description = "ID da VPC provisionada para o cluster EKS e RDS do AutoReparos"

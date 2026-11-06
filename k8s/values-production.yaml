@@ -8,6 +8,8 @@ ingress:
   className: alb
 
 api:
+  database:
+    skipStartupMigration: true
   image:
     repository: ""  # Set by CI/CD via Helm --set api.image.repository
     tag: ""         # Set by CI/CD via Helm --set api.image.tag
