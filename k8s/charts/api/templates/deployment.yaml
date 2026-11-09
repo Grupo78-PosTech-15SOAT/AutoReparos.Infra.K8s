@@ -39,6 +39,10 @@ spec:
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: {{ .Values.config.aspnetcoreEnvironment | quote }}
+            - name: Telemetry__ServiceName
+              value: {{ .Values.telemetry.serviceName | quote }}
+            - name: Telemetry__OtlpEndpoint
+              value: {{ .Values.telemetry.otlpEndpoint | quote }}
             - name: ConnectionStrings__DbConnection
               valueFrom:
                 secretKeyRef:

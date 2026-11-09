@@ -9,6 +9,11 @@ service:
   type: ClusterIP
   port: 8080
 
+telemetry:
+  serviceName: autoreparos-api
+  environment: production
+  otlpEndpoint: http://autoreparos-otel-collector:4317
+
 ingress:
   enabled: true
   className: nginx
