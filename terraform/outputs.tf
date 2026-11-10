@@ -29,8 +29,28 @@ output "public_subnet_ids" {
 }
 
 output "ecr_repository_url" {
-  description = "URL do repositorio ECR da aplicacao"
+  description = "Legacy alias: complete API ECR repository URL"
   value       = module.ecr.repository_url
+}
+
+output "ecr_api_repository_url" {
+  description = "Complete ECR repository URL for the API image"
+  value       = module.ecr.repository_url
+}
+
+output "ecr_web_repository_url" {
+  description = "Complete ECR repository URL for the Web image"
+  value       = module.ecr_web.repository_url
+}
+
+output "ecr_registry_id" {
+  description = "AWS account ID that owns both ECR repositories"
+  value       = module.ecr.registry_id
+}
+
+output "lambda_security_group_id" {
+  description = "Shared Lambda security group ID for the RDS and Lambda layers"
+  value       = aws_security_group.lambda.id
 }
 
 output "api_gateway_endpoint" {

@@ -22,7 +22,10 @@ spec:
             - name: GF_SECURITY_ADMIN_USER
               value: {{ .Values.grafana.adminUser | quote }}
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: {{ .Values.grafana.adminPassword | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.grafana.existingSecret | quote }}
+                  key: {{ .Values.grafana.existingSecretKey | quote }}
             - name: GF_USERS_ALLOW_SIGN_UP
               value: "false"
             - name: GF_SERVER_ROOT_URL

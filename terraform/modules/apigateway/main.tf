@@ -55,7 +55,7 @@ resource "aws_apigatewayv2_integration" "lambda_auth" {
   integration_type       = "AWS_PROXY"
   integration_method     = "POST"
   integration_uri        = var.lambda_function_arn
-  payload_format_version = "2.0"
+  payload_format_version = "1.0"
   description            = "Integração com a função serverless AutoReparos.AuthLambda"
 }
 
@@ -149,4 +149,31 @@ resource "aws_apigatewayv2_route" "health_check_route" {
   api_id    = aws_apigatewayv2_api.http_api.id
   route_key = "GET /health"
   target    = "integrations/${aws_apigatewayv2_integration.health_check[0].id}"
+}
+
+# Root and frontend deep links go to the Web target behind the shared ALB.
+resource "aws_apigatewayv2_integration" "web_proxy" {
+  count                  = startswith(var.eks_ingress_url, "arn:aws:") ? 1 : 0
+  api_id                 = aws_apigatewayv2_api.http_api.id
+  integration_type       = "HTTP_PROXY"
+  integration_method     = "ANY"
+  connection_type        = "VPC_LINK"
+  connection_id          = aws_apigatewayv2_vpc_link.eks_link.id
+  integration_uri        = var.eks_ingress_url
+  payload_format_version = "1.0"
+  description            = "Private integration to the ALB listener for Web routes and Angular deep links"
+}
+
+resource "aws_apigatewayv2_route" "web_root" {
+  count     = startswith(var.eks_ingress_url, "arn:aws:") ? 1 : 0
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "ANY /"
+  target    = "integrations/${aws_apigatewayv2_integration.web_proxy[0].id}"
+}
+
+resource "aws_apigatewayv2_route" "web_proxy" {
+  count     = startswith(var.eks_ingress_url, "arn:aws:") ? 1 : 0
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "ANY /{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.web_proxy[0].id}"
 }

@@ -18,9 +18,7 @@ terraform {
 
   # Backend S3 com State Locking via DynamoDB
   backend "s3" {
-    bucket         = "autoreparos-terraform-state-backend"
     key            = "k8s/terraform.tfstate"
-    region         = "us-east-1"
     dynamodb_table = "autoreparos-terraform-locks"
     encrypt        = true
   }
