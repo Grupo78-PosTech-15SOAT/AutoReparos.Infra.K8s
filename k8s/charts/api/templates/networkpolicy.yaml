@@ -1,0 +1,33 @@
+{{- if .Values.networkPolicy.enabled }}
+# O Cadastros expõe rotas /internal (autenticação do cliente pela AuthLambda) protegidas por X-Chave-Interna.
+# A NetworkPolicy fecha o acesso aos pods ao que é necessário: os outros serviços do namespace, os controladores de
+# entrada (ALB/NGINX) e os CIDRs das subnets privadas por onde a Lambda chega. Qualquer outra origem é negada.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "api.fullname" . }}-ingress
+  labels:
+    {{- include "api.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "api.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        # Serviços do mesmo namespace (OS, Cobrança, Execução consultam clientes e o JWKS)
+        - podSelector: {}
+        {{- range .Values.networkPolicy.ingressNamespaces }}
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ . | quote }}
+        {{- end }}
+        {{- range .Values.networkPolicy.allowedCidrs }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.service.port }}
+{{- end }}

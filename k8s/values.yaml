@@ -22,16 +22,25 @@ api:
   config:
     aspnetcoreEnvironment: "Development"
     jwtExpiryHours: "2"
+    jwtIssuer: ""  # URL pública do Cadastros (iss do JWT e issuer do discovery OIDC); definido pelo CI/CD
     seedUserEmail: "admin@autoreparos.com"
     sendGridFromEmail: "noreply@autoreparos.com"
     sendGridFromName: "AutoReparos"
+    notificacoesFilaUrl: ""  # fila SQS própria do Cadastros (vazia desliga o consumidor)
+    notificacoesDlqUrl: ""  # DLQ própria do Cadastros
   secrets:
     create: false
     dbConnection: ""
-    jwtSecret: ""
+    jwtChavePrivadaPem: ""  # chave RSA PKCS#8 em PEM; Secret do K8s
+    chaveInterna: ""  # segredo de X-Chave-Interna; Secret do K8s
     seedUserPassword: ""
-    aprovacaoTokenSecret: ""
     sendGridApiKey: ""
+  networkPolicy:
+    enabled: true
+    # Origens autorizadas a chegar nos pods do Cadastros (negação por padrão para o resto)
+    ingressNamespaces: ["ingress-nginx", "kube-system"]  # controladores de entrada / AWS Load Balancer Controller
+    allowedCidrs: []  # CIDRs das subnets privadas da VPC (ALB interno e Lambda); definido pelo CI/CD
+
   resources:
     requests:
       cpu: 100m
