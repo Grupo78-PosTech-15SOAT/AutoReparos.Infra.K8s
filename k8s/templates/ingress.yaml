@@ -68,3 +68,37 @@ spec:
                 port:
                   number: 80
 {{- end }}
+{{- if .Values.ingress.enabled }}
+---
+# Entrada exclusiva das rotas internas do Cadastros (a AuthLambda autentica o cliente em /internal/clientes/autenticar).
+# É um ALB interno à VPC separado do grupo "autoreparos-internal": o API Gateway só conhece o ALB do grupo principal
+# (/api, /health e web, com catch-all), então /internal nunca é alcançável pela internet. A chave X-Chave-Interna e a
+# NetworkPolicy protegem o acesso dentro da VPC. O DNS deste ALB é o valor de CADASTROS_INTERNAL_URL.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: autoreparos-cadastros-internal-ingress
+  labels:
+    app.kubernetes.io/name: autoreparos
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    alb.ingress.kubernetes.io/group.name: autoreparos-cadastros-interno
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/success-codes: "200"
+spec:
+  ingressClassName: {{ .Values.ingress.className | default "alb" }}
+  rules:
+    - http:
+        paths:
+          - path: /internal
+            pathType: Prefix
+            backend:
+              service:
+                name: autoreparos-api
+                port:
+                  number: 8080
+{{- end }}
