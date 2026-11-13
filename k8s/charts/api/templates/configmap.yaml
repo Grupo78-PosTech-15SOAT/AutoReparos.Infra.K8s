@@ -6,6 +6,9 @@ metadata:
     {{- include "api.labels" . | nindent 4 }}
 data:
   Jwt__ExpiryHours: {{ .Values.config.jwtExpiryHours | quote }}
+  Jwt__Issuer: {{ .Values.config.jwtIssuer | quote }}
+  Notificacoes__FilaUrl: {{ .Values.config.notificacoesFilaUrl | quote }}
+  Notificacoes__DlqUrl: {{ .Values.config.notificacoesDlqUrl | quote }}
   SeedUser__Email: {{ .Values.config.seedUserEmail | quote }}
   SendGrid__FromEmail: {{ .Values.config.sendGridFromEmail | quote }}
   SendGrid__FromName: {{ .Values.config.sendGridFromName | quote }}

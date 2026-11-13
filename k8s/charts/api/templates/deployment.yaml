@@ -70,21 +70,36 @@ spec:
                 configMapKeyRef:
                   name: {{ include "api.fullname" . }}-config
                   key: SendGrid__FromName
-            - name: Jwt__Secret
+            - name: Jwt__Issuer
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "api.fullname" . }}-config
+                  key: Jwt__Issuer
+            - name: Jwt__ChavePrivadaPem
               valueFrom:
                 secretKeyRef:
                   name: {{ include "api.fullname" . }}-secrets
-                  key: Jwt__Secret
+                  key: Jwt__ChavePrivadaPem
+            - name: Interno__Chave
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "api.fullname" . }}-secrets
+                  key: Interno__Chave
+            - name: Notificacoes__FilaUrl
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "api.fullname" . }}-config
+                  key: Notificacoes__FilaUrl
+            - name: Notificacoes__DlqUrl
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "api.fullname" . }}-config
+                  key: Notificacoes__DlqUrl
             - name: SeedUser__Password
               valueFrom:
                 secretKeyRef:
                   name: {{ include "api.fullname" . }}-secrets
                   key: SeedUser__Password
-            - name: AprovacaoToken__Secret
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "api.fullname" . }}-secrets
-                  key: AprovacaoToken__Secret
             - name: SendGrid__ApiKey
               valueFrom:
                 secretKeyRef:
