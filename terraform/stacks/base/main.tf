@@ -48,5 +48,13 @@ resource "aws_security_group" "lambda" {
     cidr_blocks = [var.vpc_cidr]
   }
 
+  egress {
+    description = "HTTP egress to the internal Cadastros ALB within the project VPC"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
   tags = { Name = "autoreparos-auth-lambda-sg-${var.environment}" }
 }
