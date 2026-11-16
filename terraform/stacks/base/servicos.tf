@@ -33,6 +33,8 @@ resource "kubernetes_namespace_v1" "servico" {
 }
 
 # Teto das roles IRSA que o Terraform de cada serviço cria: a role de deploy só cria role com este boundary.
+# É um só para os 4 serviços e se limita ao serviço pela tag Servico da própria role (default_tags do Terraform de
+# cada serviço; a role de deploy só cria role com Servico = o próprio serviço e não troca nem tira essa tag).
 resource "aws_iam_policy" "servico_boundary" {
   name        = "autoreparos-servico-boundary"
   description = "Permissions boundary das roles IRSA dos servicos do AutoReparos"

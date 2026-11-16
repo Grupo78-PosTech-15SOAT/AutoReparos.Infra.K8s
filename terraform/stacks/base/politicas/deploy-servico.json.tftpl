@@ -59,12 +59,21 @@
       "Resource": "arn:aws:iam::${conta}:role/autoreparos-${servico}-*"
     },
     {
-      "Sid": "CriarRoleSoComBoundary",
+      "Sid": "CriarRoleSoComBoundaryETag",
       "Effect": "Allow",
-      "Action": [
-        "iam:CreateRole",
-        "iam:PutRolePermissionsBoundary"
-      ],
+      "Action": "iam:CreateRole",
+      "Resource": "arn:aws:iam::${conta}:role/autoreparos-${servico}-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PermissionsBoundary": "arn:aws:iam::${conta}:policy/autoreparos-servico-boundary",
+          "aws:RequestTag/Servico": "${servico}"
+        }
+      }
+    },
+    {
+      "Sid": "PorSoOBoundary",
+      "Effect": "Allow",
+      "Action": "iam:PutRolePermissionsBoundary",
       "Resource": "arn:aws:iam::${conta}:role/autoreparos-${servico}-*",
       "Condition": {
         "StringEquals": {
@@ -114,6 +123,34 @@
       "Condition": {
         "StringNotEquals": {
           "iam:PermissionsBoundary": "arn:aws:iam::${conta}:policy/autoreparos-servico-boundary"
+        }
+      }
+    },
+    {
+      "Sid": "TagServicoSoComOProprioServico",
+      "Effect": "Deny",
+      "Action": [
+        "iam:CreateRole",
+        "iam:TagRole"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "ForAnyValue:StringEquals": {
+          "aws:TagKeys": "Servico"
+        },
+        "StringNotEquals": {
+          "aws:RequestTag/Servico": "${servico}"
+        }
+      }
+    },
+    {
+      "Sid": "TagServicoNaoSaiDaRole",
+      "Effect": "Deny",
+      "Action": "iam:UntagRole",
+      "Resource": "*",
+      "Condition": {
+        "ForAnyValue:StringEquals": {
+          "aws:TagKeys": "Servico"
         }
       }
     },

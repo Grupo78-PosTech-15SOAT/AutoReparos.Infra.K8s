@@ -55,6 +55,15 @@ run "roles_de_deploy" {
   }
 
   assert {
+    condition = (
+      strcontains(aws_iam_policy.servico_boundary.policy, "secret:autoreparos/production/$${aws:PrincipalTag/Servico}/*") &&
+      strcontains(aws_iam_policy.servico_boundary.policy, "table/autoreparos-$${aws:PrincipalTag/Servico}-*") &&
+      !strcontains(aws_iam_policy.servico_boundary.policy, "autoreparos/production/os/")
+    )
+    error_message = "O boundary precisa limitar segredos e tabelas ao serviço pela variável aws:PrincipalTag/Servico, renderizada literalmente."
+  }
+
+  assert {
     condition     = toset(keys(aws_iam_role.deploy)) == toset(["os", "cobranca", "execucao", "cadastros"]) && length(aws_eks_access_entry.deploy) == 4 && length(aws_eks_access_policy_association.deploy) == 4
     error_message = "Precisam existir exatamente 4 roles de deploy, cada uma com uma access entry."
   }
