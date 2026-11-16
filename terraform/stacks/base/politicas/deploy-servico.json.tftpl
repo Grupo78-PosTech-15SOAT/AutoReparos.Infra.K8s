@@ -243,13 +243,21 @@
       "Resource": "*"
     },
     {
-      "Sid": "ChamarOProvisionador",
+      "Sid": "ChamarOProvisionadorPelaUrl",
       "Effect": "Allow",
-      "Action": [
-        "lambda:InvokeFunctionUrl",
-        "lambda:InvokeFunction"
-      ],
+      "Action": "lambda:InvokeFunctionUrl",
       "Resource": "arn:aws:lambda:${regiao}:${conta}:function:autoreparos-provisionador-db"
+    },
+    {
+      "Sid": "InvocarOProvisionadorSoPelaUrl",
+      "Effect": "Allow",
+      "Action": "lambda:InvokeFunction",
+      "Resource": "arn:aws:lambda:${regiao}:${conta}:function:autoreparos-provisionador-db",
+      "Condition": {
+        "Bool": {
+          "lambda:InvokedViaFunctionUrl": "true"
+        }
+      }
     }
   ]
 }
