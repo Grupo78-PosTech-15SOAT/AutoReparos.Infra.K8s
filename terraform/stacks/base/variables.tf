@@ -43,3 +43,17 @@ variable "min_size" {
   type    = number
   default = 2
 }
+variable "tf_state_bucket" {
+  description = "Bucket do state do Terraform; as roles de deploy dos serviços só alcançam servicos/<servico>/ nele"
+  type        = string
+}
+variable "tf_lock_table" {
+  description = "Tabela DynamoDB de lock do state do Terraform"
+  type        = string
+  default     = "autoreparos-terraform-locks"
+}
+variable "github_org" {
+  description = "Organização do GitHub dona dos repositórios dos serviços"
+  type        = string
+  default     = "Grupo78-PosTech-15SOAT"
+}

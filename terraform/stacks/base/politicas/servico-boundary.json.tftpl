@@ -1,0 +1,57 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "FilasDosServicos",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:SendMessage",
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:ChangeMessageVisibility",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl",
+        "sqs:ListDeadLetterSourceQueues",
+        "sqs:StartMessageMoveTask",
+        "sqs:ListMessageMoveTasks",
+        "sqs:CancelMessageMoveTask"
+      ],
+      "Resource": [
+        "arn:aws:sqs:${regiao}:${conta}:autoreparos-os-*",
+        "arn:aws:sqs:${regiao}:${conta}:autoreparos-cobranca-*",
+        "arn:aws:sqs:${regiao}:${conta}:autoreparos-execucao-*",
+        "arn:aws:sqs:${regiao}:${conta}:autoreparos-cadastros-*"
+      ]
+    },
+    {
+      "Sid": "TabelasDosServicos",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:*Item",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:DescribeTable"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:${regiao}:${conta}:table/autoreparos-os-*",
+        "arn:aws:dynamodb:${regiao}:${conta}:table/autoreparos-cobranca-*",
+        "arn:aws:dynamodb:${regiao}:${conta}:table/autoreparos-execucao-*",
+        "arn:aws:dynamodb:${regiao}:${conta}:table/autoreparos-cadastros-*"
+      ]
+    },
+    {
+      "Sid": "SegredosDosServicos",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ],
+      "Resource": [
+        "arn:aws:secretsmanager:${regiao}:${conta}:secret:autoreparos/production/os/*",
+        "arn:aws:secretsmanager:${regiao}:${conta}:secret:autoreparos/production/cobranca/*",
+        "arn:aws:secretsmanager:${regiao}:${conta}:secret:autoreparos/production/execucao/*",
+        "arn:aws:secretsmanager:${regiao}:${conta}:secret:autoreparos/production/cadastros/*"
+      ]
+    }
+  ]
+}
