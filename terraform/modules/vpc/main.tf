@@ -107,3 +107,21 @@ resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private.id
 }
+
+# Endpoints do tipo gateway (sem custo) para S3 e DynamoDB: ECR (camadas no S3), state do Terraform e a
+# Saga do OS não passam pelo único NAT Gateway (D-55).
+data "aws_region" "current" {}
+
+resource "aws_vpc_endpoint" "gateway" {
+  for_each = toset(["s3", "dynamodb"])
+
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.${each.key}"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [aws_route_table.private.id]
+
+  tags = {
+    Name        = "${var.environment}-${each.key}-gateway-endpoint"
+    Environment = var.environment
+  }
+}
