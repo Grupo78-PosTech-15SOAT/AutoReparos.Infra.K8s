@@ -200,6 +200,12 @@
       "Resource": "arn:aws:eks:${regiao}:${conta}:cluster/${cluster}"
     },
     {
+      "Sid": "LerSubRedesDaVpc",
+      "Effect": "Allow",
+      "Action": "ec2:DescribeSubnets",
+      "Resource": "*"
+    },
+    {
       "Sid": "ChamarOProvisionador",
       "Effect": "Allow",
       "Action": [
