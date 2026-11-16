@@ -1,0 +1,263 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "LoginNoEcr",
+      "Effect": "Allow",
+      "Action": "ecr:GetAuthorizationToken",
+      "Resource": "*"
+    },
+    {
+      "Sid": "EcrDoServico",
+      "Effect": "Allow",
+      "Action": "ecr:*",
+      "Resource": [
+        "arn:aws:ecr:${regiao}:${conta}:repository/autoreparos-${servico}",
+        "arn:aws:ecr:${regiao}:${conta}:repository/autoreparos-${servico}-*"
+      ]
+    },
+    {
+      "Sid": "FilasDoServico",
+      "Effect": "Allow",
+      "Action": "sqs:*",
+      "Resource": "arn:aws:sqs:${regiao}:${conta}:autoreparos-${servico}-*"
+    },
+    {
+      "Sid": "TabelasDoServico",
+      "Effect": "Allow",
+      "Action": "dynamodb:*",
+      "Resource": [
+        "arn:aws:dynamodb:${regiao}:${conta}:table/autoreparos-${servico}-*",
+        "arn:aws:dynamodb:${regiao}:${conta}:table/autoreparos-${servico}-*/index/*"
+      ]
+    },
+    {
+      "Sid": "SegredosDoServico",
+      "Effect": "Allow",
+      "Action": "secretsmanager:*",
+      "Resource": "arn:aws:secretsmanager:${regiao}:${conta}:secret:autoreparos/production/${servico}/*"
+    },
+    {
+      "Sid": "RolesDoServico",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:DeleteRole",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:ListRoleTags",
+        "iam:UpdateRole",
+        "iam:UpdateRoleDescription",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:PutRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListInstanceProfilesForRole"
+      ],
+      "Resource": "arn:aws:iam::${conta}:role/autoreparos-${servico}-*"
+    },
+    {
+      "Sid": "CriarRoleSoComBoundaryETag",
+      "Effect": "Allow",
+      "Action": "iam:CreateRole",
+      "Resource": "arn:aws:iam::${conta}:role/autoreparos-${servico}-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PermissionsBoundary": "arn:aws:iam::${conta}:policy/autoreparos-servico-boundary",
+          "aws:RequestTag/Servico": "${servico}"
+        }
+      }
+    },
+    {
+      "Sid": "PorSoOBoundary",
+      "Effect": "Allow",
+      "Action": "iam:PutRolePermissionsBoundary",
+      "Resource": "arn:aws:iam::${conta}:role/autoreparos-${servico}-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PermissionsBoundary": "arn:aws:iam::${conta}:policy/autoreparos-servico-boundary"
+        }
+      }
+    },
+    {
+      "Sid": "AnexarSoPoliticasDoServico",
+      "Effect": "Allow",
+      "Action": [
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy"
+      ],
+      "Resource": "arn:aws:iam::${conta}:role/autoreparos-${servico}-*",
+      "Condition": {
+        "ArnLike": {
+          "iam:PolicyARN": "arn:aws:iam::${conta}:policy/autoreparos-${servico}-*"
+        }
+      }
+    },
+    {
+      "Sid": "PoliticasDoServico",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreatePolicy",
+        "iam:DeletePolicy",
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:ListPolicyVersions",
+        "iam:CreatePolicyVersion",
+        "iam:DeletePolicyVersion",
+        "iam:TagPolicy",
+        "iam:UntagPolicy",
+        "iam:ListPolicyTags"
+      ],
+      "Resource": "arn:aws:iam::${conta}:policy/autoreparos-${servico}-*"
+    },
+    {
+      "Sid": "RoleSemBoundaryNegada",
+      "Effect": "Deny",
+      "Action": [
+        "iam:CreateRole",
+        "iam:PutRolePermissionsBoundary"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "iam:PermissionsBoundary": "arn:aws:iam::${conta}:policy/autoreparos-servico-boundary"
+        }
+      }
+    },
+    {
+      "Sid": "TagServicoSoComOProprioServico",
+      "Effect": "Deny",
+      "Action": [
+        "iam:CreateRole",
+        "iam:TagRole"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "ForAnyValue:StringEquals": {
+          "aws:TagKeys": "Servico"
+        },
+        "StringNotEquals": {
+          "aws:RequestTag/Servico": "${servico}"
+        }
+      }
+    },
+    {
+      "Sid": "TagServicoNaoSaiDaRole",
+      "Effect": "Deny",
+      "Action": "iam:UntagRole",
+      "Resource": "*",
+      "Condition": {
+        "ForAnyValue:StringEquals": {
+          "aws:TagKeys": "Servico"
+        }
+      }
+    },
+    {
+      "Sid": "BoundaryNaoSaiDaRole",
+      "Effect": "Deny",
+      "Action": "iam:DeleteRolePermissionsBoundary",
+      "Resource": "*"
+    },
+    {
+      "Sid": "BoundaryNaoMuda",
+      "Effect": "Deny",
+      "Action": [
+        "iam:CreatePolicyVersion",
+        "iam:DeletePolicy",
+        "iam:DeletePolicyVersion",
+        "iam:SetDefaultPolicyVersion"
+      ],
+      "Resource": "arn:aws:iam::${conta}:policy/autoreparos-servico-boundary"
+    },
+    {
+      "Sid": "StateDoServico",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::${bucket}/servicos/${servico}/*"
+    },
+    {
+      "Sid": "ListarSoOStateDoServico",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::${bucket}",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "servicos/${servico}/*",
+            "env:/*"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "LockDoStateDoServico",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem"
+      ],
+      "Resource": "arn:aws:dynamodb:${regiao}:${conta}:table/${tabela_lock}",
+      "Condition": {
+        "ForAllValues:StringLike": {
+          "dynamodb:LeadingKeys": [
+            "${bucket}/servicos/${servico}/*"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "ParametrosNaoSecretosDaPlataforma",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters"
+      ],
+      "Resource": [
+        "arn:aws:ssm:${regiao}:${conta}:parameter/autoreparos/production/vpc_id",
+        "arn:aws:ssm:${regiao}:${conta}:parameter/autoreparos/production/subnets/*",
+        "arn:aws:ssm:${regiao}:${conta}:parameter/autoreparos/production/security-groups/*",
+        "arn:aws:ssm:${regiao}:${conta}:parameter/autoreparos/production/eks/*",
+        "arn:aws:ssm:${regiao}:${conta}:parameter/autoreparos/production/apigateway/*",
+        "arn:aws:ssm:${regiao}:${conta}:parameter/autoreparos/production/database/*",
+        "arn:aws:ssm:${regiao}:${conta}:parameter/autoreparos/production/provisionador-db/*"
+      ]
+    },
+    {
+      "Sid": "ConectarNoCluster",
+      "Effect": "Allow",
+      "Action": "eks:DescribeCluster",
+      "Resource": "arn:aws:eks:${regiao}:${conta}:cluster/${cluster}"
+    },
+    {
+      "Sid": "LerSubRedesDaVpc",
+      "Effect": "Allow",
+      "Action": "ec2:DescribeSubnets",
+      "Resource": "*"
+    },
+    {
+      "Sid": "ChamarOProvisionadorPelaUrl",
+      "Effect": "Allow",
+      "Action": "lambda:InvokeFunctionUrl",
+      "Resource": "arn:aws:lambda:${regiao}:${conta}:function:autoreparos-provisionador-db"
+    },
+    {
+      "Sid": "InvocarOProvisionadorSoPelaUrl",
+      "Effect": "Allow",
+      "Action": "lambda:InvokeFunction",
+      "Resource": "arn:aws:lambda:${regiao}:${conta}:function:autoreparos-provisionador-db",
+      "Condition": {
+        "Bool": {
+          "lambda:InvokedViaFunctionUrl": "true"
+        }
+      }
+    }
+  ]
+}

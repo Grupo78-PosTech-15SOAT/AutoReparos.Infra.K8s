@@ -1,0 +1,49 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicarNasFilasDosServicos",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:SendMessage",
+        "sqs:GetQueueAttributes",
+        "sqs:GetQueueUrl"
+      ],
+      "Resource": "arn:aws:sqs:${regiao}:${conta}:autoreparos-*"
+    },
+    {
+      "Sid": "ConsumirSoAsFilasDoServico",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:ChangeMessageVisibility",
+        "sqs:ListDeadLetterSourceQueues",
+        "sqs:StartMessageMoveTask",
+        "sqs:ListMessageMoveTasks",
+        "sqs:CancelMessageMoveTask"
+      ],
+      "Resource": "arn:aws:sqs:${regiao}:${conta}:autoreparos-$${aws:PrincipalTag/Servico}-*"
+    },
+    {
+      "Sid": "TabelasDoServico",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:*Item",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:DescribeTable"
+      ],
+      "Resource": "arn:aws:dynamodb:${regiao}:${conta}:table/autoreparos-$${aws:PrincipalTag/Servico}-*"
+    },
+    {
+      "Sid": "SegredosDoServico",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:DescribeSecret"
+      ],
+      "Resource": "arn:aws:secretsmanager:${regiao}:${conta}:secret:autoreparos/production/$${aws:PrincipalTag/Servico}/*"
+    }
+  ]
+}
