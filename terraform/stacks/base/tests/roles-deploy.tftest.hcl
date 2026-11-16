@@ -72,7 +72,7 @@ run "roles_de_deploy" {
         Condition = {
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            "token.actions.githubusercontent.com:sub" = "repo:Grupo78-PosTech-15SOAT/AutoReparos.OS:environment:production"
+            "token.actions.githubusercontent.com:sub" = ["repo:Grupo78-PosTech-15SOAT/AutoReparos.OS:environment:production", "repo:Grupo78-PosTech-15SOAT@272379485/AutoReparos.OS@1451569216:environment:production"]
           }
         }
         Effect    = "Allow"
@@ -106,7 +106,7 @@ run "roles_de_deploy" {
         Condition = {
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            "token.actions.githubusercontent.com:sub" = "repo:Grupo78-PosTech-15SOAT/AutoReparos.Cobranca:environment:production"
+            "token.actions.githubusercontent.com:sub" = ["repo:Grupo78-PosTech-15SOAT/AutoReparos.Cobranca:environment:production", "repo:Grupo78-PosTech-15SOAT@272379485/AutoReparos.Cobranca@1451580860:environment:production"]
           }
         }
         Effect    = "Allow"
@@ -140,7 +140,7 @@ run "roles_de_deploy" {
         Condition = {
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            "token.actions.githubusercontent.com:sub" = "repo:Grupo78-PosTech-15SOAT/AutoReparos.Execucao:environment:production"
+            "token.actions.githubusercontent.com:sub" = ["repo:Grupo78-PosTech-15SOAT/AutoReparos.Execucao:environment:production", "repo:Grupo78-PosTech-15SOAT@272379485/AutoReparos.Execucao@1451800348:environment:production"]
           }
         }
         Effect    = "Allow"
@@ -174,7 +174,7 @@ run "roles_de_deploy" {
         Condition = {
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            "token.actions.githubusercontent.com:sub" = "repo:Grupo78-PosTech-15SOAT/AutoReparos.Cadastros:environment:production"
+            "token.actions.githubusercontent.com:sub" = ["repo:Grupo78-PosTech-15SOAT/AutoReparos.Cadastros:environment:production", "repo:Grupo78-PosTech-15SOAT@272379485/AutoReparos.Cadastros@1369332411:environment:production"]
           }
         }
         Effect    = "Allow"

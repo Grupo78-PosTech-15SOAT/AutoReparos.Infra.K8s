@@ -58,7 +58,11 @@ resource "aws_iam_role" "deploy" {
       Condition = {
         StringEquals = {
           "${local.github_oidc_url}:aud" = "sts.amazonaws.com"
-          "${local.github_oidc_url}:sub" = "repo:${var.github_org}/AutoReparos.${each.value}:environment:production"
+          "${local.github_oidc_url}:sub" = [
+            "repo:${var.github_org}/AutoReparos.${each.value}:environment:production",
+            # Repositórios com assunto imutável do GitHub (não dá para desligar): org e repositório com o id numérico.
+            "repo:${var.github_org}@${var.github_org_id}/AutoReparos.${each.value}@${var.github_repo_ids[each.key]}:environment:production",
+          ]
         }
       }
     }]

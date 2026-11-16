@@ -62,3 +62,20 @@ variable "administradores_eks" {
   type        = list(string)
   default     = ["arn:aws:iam::198903849859:role/managed/AccountFullAccessRole"]
 }
+
+variable "github_org_id" {
+  description = "Id numérico da organização no GitHub, usado no assunto imutável do OIDC"
+  type        = string
+  default     = "272379485"
+}
+
+variable "github_repo_ids" {
+  description = "Id numérico de cada repositório de serviço no GitHub, usado no assunto imutável do OIDC"
+  type        = map(string)
+  default = {
+    os        = "1451569216"
+    cobranca  = "1451580860"
+    execucao  = "1451800348"
+    cadastros = "1369332411"
+  }
+}
