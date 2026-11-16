@@ -2,47 +2,6 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: autoreparos-api-ingress
-  labels:
-    app.kubernetes.io/name: autoreparos
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-  annotations:
-    alb.ingress.kubernetes.io/group.name: autoreparos-internal
-    alb.ingress.kubernetes.io/scheme: internal
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
-    alb.ingress.kubernetes.io/healthcheck-path: /health
-    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "15"
-    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
-    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
-    alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
-    alb.ingress.kubernetes.io/success-codes: "200"
-spec:
-  ingressClassName: {{ .Values.ingress.className | default "alb" }}
-  rules:
-    - http:
-        paths:
-          - path: /health
-            pathType: Exact
-            backend:
-              service:
-                name: autoreparos-api
-                port:
-                  number: 8080
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: autoreparos-api
-                port:
-                  number: 8080
-{{- end }}
-{{- if .Values.ingress.enabled }}
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
   name: autoreparos-web-ingress
   labels:
     app.kubernetes.io/name: autoreparos-web
@@ -50,6 +9,9 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
   annotations:
     alb.ingress.kubernetes.io/group.name: autoreparos-internal
+    # Maior ordem do grupo: o catch-all "/" do Web casa por último, depois das regras de OS (10), Cobrança (20),
+    # Execução (30) e Cadastros (100), que ficam nos charts de cada serviço.
+    alb.ingress.kubernetes.io/group.order: "1000"
     alb.ingress.kubernetes.io/scheme: internal
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
@@ -67,38 +29,4 @@ spec:
                 name: autoreparos-web
                 port:
                   number: 80
-{{- end }}
-{{- if .Values.ingress.enabled }}
----
-# Entrada exclusiva das rotas internas do Cadastros (a AuthLambda autentica o cliente em /internal/clientes/autenticar).
-# É um ALB interno à VPC separado do grupo "autoreparos-internal": o API Gateway só conhece o ALB do grupo principal
-# (/api, /health e web, com catch-all), então /internal nunca é alcançável pela internet. A chave X-Chave-Interna e a
-# NetworkPolicy protegem o acesso dentro da VPC. O DNS deste ALB é o valor de CADASTROS_INTERNAL_URL.
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: autoreparos-cadastros-internal-ingress
-  labels:
-    app.kubernetes.io/name: autoreparos
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-  annotations:
-    alb.ingress.kubernetes.io/group.name: autoreparos-cadastros-interno
-    alb.ingress.kubernetes.io/scheme: internal
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
-    alb.ingress.kubernetes.io/healthcheck-path: /health
-    alb.ingress.kubernetes.io/success-codes: "200"
-spec:
-  ingressClassName: {{ .Values.ingress.className | default "alb" }}
-  rules:
-    - http:
-        paths:
-          - path: /internal
-            pathType: Prefix
-            backend:
-              service:
-                name: autoreparos-api
-                port:
-                  number: 8080
 {{- end }}

@@ -8,7 +8,6 @@ output "cluster_security_group_id" { value = module.eks.cluster_security_group_i
 output "oidc_provider_arn" { value = module.eks.oidc_provider_arn }
 output "oidc_provider_url" { value = module.eks.oidc_provider_url }
 output "lambda_security_group_id" { value = aws_security_group.lambda.id }
-output "ecr_api_repository_url" { value = module.ecr.repository_url }
 output "ecr_web_repository_url" { value = module.ecr_web.repository_url }
 output "deploy_role_arns" { value = { for servico, role in aws_iam_role.deploy : servico => role.arn } }
 output "servico_boundary_arn" { value = aws_iam_policy.servico_boundary.arn }

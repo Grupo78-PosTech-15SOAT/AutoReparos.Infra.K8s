@@ -21,12 +21,6 @@ module "eks" {
   environment        = var.environment
 }
 
-module "ecr" {
-  source          = "../../modules/ecr"
-  repository_name = "autoreparos-api"
-  environment     = var.environment
-}
-
 module "ecr_web" {
   source          = "../../modules/ecr"
   repository_name = "autoreparos-web"
