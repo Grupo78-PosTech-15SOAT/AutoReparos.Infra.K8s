@@ -29,7 +29,7 @@ variable "availability_zones" {
 }
 variable "instance_types" {
   type    = list(string)
-  default = ["t3.small"]
+  default = ["t3.medium"]
 }
 variable "desired_size" {
   type    = number
@@ -37,7 +37,7 @@ variable "desired_size" {
 }
 variable "max_size" {
   type    = number
-  default = 4
+  default = 3
 }
 variable "min_size" {
   type    = number
