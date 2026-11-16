@@ -135,7 +135,7 @@
       ],
       "Resource": "*",
       "Condition": {
-        "ForAnyValue:StringEquals": {
+        "ForAnyValue:StringEqualsIgnoreCase": {
           "aws:TagKeys": "Servico"
         },
         "StringNotEquals": {
@@ -149,10 +149,16 @@
       "Action": "iam:UntagRole",
       "Resource": "*",
       "Condition": {
-        "ForAnyValue:StringEquals": {
+        "ForAnyValue:StringEqualsIgnoreCase": {
           "aws:TagKeys": "Servico"
         }
       }
+    },
+    {
+      "Sid": "SemTagDeSessao",
+      "Effect": "Deny",
+      "Action": "sts:TagSession",
+      "Resource": "*"
     },
     {
       "Sid": "BoundaryNaoSaiDaRole",
