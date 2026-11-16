@@ -100,3 +100,24 @@ resource "aws_eks_access_policy_association" "deploy" {
     namespaces = [kubernetes_namespace_v1.servico[each.key].metadata[0].name]
   }
 }
+
+# Acesso humano ao cluster: sem isto só a role do pai (criadora do cluster) usa kubectl e helm.
+resource "aws_eks_access_entry" "administrador" {
+  for_each = toset(var.administradores_eks)
+
+  cluster_name  = module.eks.cluster_name
+  principal_arn = each.value
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "administrador" {
+  for_each = toset(var.administradores_eks)
+
+  cluster_name  = module.eks.cluster_name
+  principal_arn = aws_eks_access_entry.administrador[each.key].principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+}

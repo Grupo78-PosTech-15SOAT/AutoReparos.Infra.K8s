@@ -57,3 +57,8 @@ variable "github_org" {
   type        = string
   default     = "Grupo78-PosTech-15SOAT"
 }
+variable "administradores_eks" {
+  description = "Roles humanas com acesso de administrador ao cluster (permission set do Identity Center usado por José e Enrico, AD-055)"
+  type        = list(string)
+  default     = ["arn:aws:iam::198903849859:role/managed/AccountFullAccessRole"]
+}
