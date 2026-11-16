@@ -21,12 +21,6 @@ module "eks" {
   environment        = var.environment
 }
 
-module "ecr" {
-  source          = "../../modules/ecr"
-  repository_name = "autoreparos-api"
-  environment     = var.environment
-}
-
 module "ecr_web" {
   source          = "../../modules/ecr"
   repository_name = "autoreparos-web"
@@ -50,6 +44,14 @@ resource "aws_security_group" "lambda" {
     description = "PostgreSQL egress within the project VPC"
     from_port   = 5432
     to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  egress {
+    description = "HTTP egress to the internal Cadastros ALB within the project VPC"
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = [var.vpc_cidr]
   }

@@ -22,6 +22,11 @@ data:
         check_interval: 1s
         limit_percentage: 75
         spike_limit_percentage: 20
+      resource:
+        attributes:
+          - key: service.name
+            action: insert
+            value: unknown-service
 
     exporters:
       prometheus:
@@ -58,13 +63,13 @@ data:
       pipelines:
         traces:
           receivers: [otlp]
-          processors: [memory_limiter, batch]
+          processors: [memory_limiter, resource, batch]
           exporters: [otlp/jaeger{{ if .Values.otelCollector.vendor.enabled }}, otlp/vendor{{ end }}]
         metrics:
           receivers: [otlp]
-          processors: [memory_limiter, batch]
+          processors: [memory_limiter, resource, batch]
           exporters: [prometheus{{ if .Values.otelCollector.vendor.enabled }}, otlp/vendor{{ end }}]
         logs:
           receivers: [otlp]
-          processors: [memory_limiter, batch]
+          processors: [memory_limiter, resource, batch]
           exporters: [loki{{ if .Values.otelCollector.vendor.enabled }}, otlp/vendor{{ end }}]

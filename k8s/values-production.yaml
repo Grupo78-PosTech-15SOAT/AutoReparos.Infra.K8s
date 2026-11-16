@@ -7,34 +7,6 @@ ingress:
   enabled: true
   className: alb
 
-api:
-  database:
-    skipStartupMigration: true
-  image:
-    repository: ""  # Set by CI/CD via Helm --set api.image.repository
-    tag: ""         # Set by CI/CD via Helm --set api.image.tag
-    pullPolicy: Always
-
-  ingress:
-    enabled: false
-    hosts:
-      - host: ""  # Empty host enables wildcard routing to match the AWS Network Load Balancer (NLB) DNS
-        paths:
-          - path: /
-            pathType: Prefix
-
-  config:
-    aspnetcoreEnvironment: "Production"
-
-  secrets:
-    create: false  # Production secrets are created securely via CI/CD (kubectl apply) or AWS Secrets Manager
-
-  hpa:
-    minReplicas: 2
-    maxReplicas: 10
-    targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 80
-
 web:
   image:
     repository: ""  # Set by CI/CD via Helm --set web.image.repository
