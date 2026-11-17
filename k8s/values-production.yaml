@@ -8,13 +8,8 @@ ingress:
   className: alb
 
 web:
-  image:
-    repository: ""  # Set by CI/CD via Helm --set web.image.repository
-    tag: ""         # Set by CI/CD via Helm --set web.image.tag
-    pullPolicy: Always
-  config:
-    apiUrl: ""
-    otelCollectorHost: "autoreparos-otel-collector"
+  # Em produção o Web se implanta pelo próprio repositório (release web, namespace web; D-72, web-deploy S5).
+  enabled: false
 
 database:
   enabled: false

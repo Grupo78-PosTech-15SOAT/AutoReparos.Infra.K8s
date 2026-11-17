@@ -21,6 +21,8 @@ database:
       memory: 512Mi
 
 web:
+  # Local (docker/kind) o guarda-chuva sobe o Web; em produção o Web tem release próprio no namespace web (D-72).
+  enabled: true
   replicaCount: 1
   image:
     repository: autoreparos-web
