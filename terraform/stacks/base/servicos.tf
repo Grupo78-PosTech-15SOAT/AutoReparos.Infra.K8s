@@ -127,3 +127,65 @@ resource "aws_eks_access_policy_association" "administrador" {
     type = "cluster"
   }
 }
+
+# Deploy próprio do AutoReparos.Web (web-deploy, D-72 / AD-077). O Web não tem Terraform, fila, banco, segredo nem
+# IRSA: a role só publica no ECR autoreparos-web (criado acima no main.tf), descreve o cluster e edita o namespace web.
+resource "kubernetes_namespace_v1" "web" {
+  metadata {
+    name = "web"
+    labels = {
+      "app.kubernetes.io/part-of" = "autoreparos"
+    }
+  }
+}
+
+resource "aws_iam_role" "deploy_web" {
+  name                 = "autoreparos-deploy-web"
+  description          = "Deploy do AutoReparos.Web pelo GitHub Actions (Environment production)"
+  max_session_duration = 3600
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = data.aws_iam_openid_connect_provider.github.arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "${local.github_oidc_url}:aud" = "sts.amazonaws.com"
+          "${local.github_oidc_url}:sub" = [
+            "repo:${var.github_org}/AutoReparos.Web:environment:production",
+            "repo:${var.github_org}@${var.github_org_id}/AutoReparos.Web@${var.github_repo_ids["web"]}:environment:production",
+          ]
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "deploy_web" {
+  name = "autoreparos-deploy-web"
+  role = aws_iam_role.deploy_web.id
+  policy = templatefile("${path.module}/politicas/deploy-web.json.tftpl", {
+    conta   = local.conta
+    regiao  = var.aws_region
+    cluster = module.eks.cluster_name
+  })
+}
+
+resource "aws_eks_access_entry" "deploy_web" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = aws_iam_role.deploy_web.arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "deploy_web" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = aws_eks_access_entry.deploy_web.principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"
+
+  access_scope {
+    type       = "namespace"
+    namespaces = [kubernetes_namespace_v1.web.metadata[0].name]
+  }
+}

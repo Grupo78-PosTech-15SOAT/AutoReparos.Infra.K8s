@@ -70,12 +70,13 @@ variable "github_org_id" {
 }
 
 variable "github_repo_ids" {
-  description = "Id numérico de cada repositório de serviço no GitHub, usado no assunto imutável do OIDC"
+  description = "Id numérico de cada repositório de serviço (e do Web) no GitHub, usado no assunto imutável do OIDC"
   type        = map(string)
   default = {
     os        = "1451569216"
     cobranca  = "1451580860"
     execucao  = "1451800348"
     cadastros = "1369332411"
+    web       = "1454153026"
   }
 }
