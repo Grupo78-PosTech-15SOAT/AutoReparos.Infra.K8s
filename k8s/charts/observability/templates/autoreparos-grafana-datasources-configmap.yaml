@@ -12,7 +12,7 @@ data:
         uid: Prometheus
         type: prometheus
         access: proxy
-        url: http://prometheus:9090
+        url: http://autoreparos-prometheus:9090
         isDefault: true
         editable: false
 
@@ -20,12 +20,12 @@ data:
         uid: Jaeger
         type: jaeger
         access: proxy
-        url: http://jaeger:16686
+        url: http://autoreparos-jaeger:16686
         editable: false
 
       - name: Loki
         uid: Loki
         type: loki
         access: proxy
-        url: http://loki:3100
+        url: http://autoreparos-loki:3100
         editable: false

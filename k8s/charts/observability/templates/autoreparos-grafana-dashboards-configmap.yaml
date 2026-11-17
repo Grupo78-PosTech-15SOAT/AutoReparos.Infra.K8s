@@ -984,3 +984,176 @@ data:
       "version": 1,
       "weekStart": ""
     }
+  saga.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": true,
+      "graphTooltip": 1,
+      "id": null,
+      "links": [
+        {
+          "title": "Traces no Jaeger (busque pela tag ordem_servico.id)",
+          "type": "link",
+          "url": "/explore?left=%7B%22datasource%22:%22Jaeger%22%7D",
+          "targetBlank": true
+        }
+      ],
+      "panels": [
+        {
+          "id": 1,
+          "title": "Sagas iniciadas",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 0,
+            "y": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(autoreparos_sagas_iniciadas_total[$__range])) or vector(0)",
+              "legendFormat": "Sagas iniciadas",
+              "range": true,
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Sagas concluídas",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 6,
+            "y": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(autoreparos_sagas_concluidas_total[$__range])) or vector(0)",
+              "legendFormat": "Sagas concluídas",
+              "range": true,
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Sagas paradas",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 12,
+            "y": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "max(autoreparos_sagas_paradas) or vector(0)",
+              "legendFormat": "Sagas paradas",
+              "range": true,
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "title": "DLQ da Saga",
+          "type": "stat",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 6,
+            "x": 18,
+            "y": 0
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "max(autoreparos_saga_dlq_mensagens) or vector(0)",
+              "legendFormat": "DLQ da Saga",
+              "range": true,
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Compensações por passo",
+          "type": "timeseries",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 24,
+            "x": 0,
+            "y": 5
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "Prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum by (passo) (increase(autoreparos_sagas_compensadas_total[5m]))",
+              "legendFormat": "{{`{{passo}}`}}",
+              "range": true,
+              "refId": "A"
+            }
+          ]
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 39,
+      "tags": [
+        "autoreparos",
+        "saga"
+      ],
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "timezone": "browser",
+      "title": "Saga",
+      "uid": "autoreparos-saga",
+      "version": 1
+    }

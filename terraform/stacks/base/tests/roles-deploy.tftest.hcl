@@ -63,6 +63,25 @@ run "roles_de_deploy" {
     error_message = "O boundary precisa limitar segredos e tabelas ao serviço pela variável aws:PrincipalTag/Servico, renderizada literalmente."
   }
 
+  # C22 de infra-ci-observabilidade (D-67): SNS só no prefixo do serviço; publicar só nos tópicos do próprio serviço.
+  assert {
+    condition = (
+      strcontains(aws_iam_policy.servico_boundary.policy, "\"sns:Publish\"") &&
+      strcontains(aws_iam_policy.servico_boundary.policy, "arn:aws:sns:us-east-1:198903849859:autoreparos-$${aws:PrincipalTag/Servico}-*") &&
+      !strcontains(aws_iam_policy.servico_boundary.policy, "\"sns:*\"")
+    )
+    error_message = "O boundary precisa permitir sns:Publish só em autoreparos-$${aws:PrincipalTag/Servico}-*."
+  }
+
+  assert {
+    condition = (
+      strcontains(aws_iam_role_policy.deploy["execucao"].policy, "\"Resource\": \"arn:aws:sns:us-east-1:198903849859:autoreparos-execucao-*\"") &&
+      strcontains(aws_iam_role_policy.deploy["os"].policy, "\"Resource\": \"arn:aws:sns:us-east-1:198903849859:autoreparos-os-*\"") &&
+      !strcontains(aws_iam_role_policy.deploy["os"].policy, "autoreparos-execucao-*")
+    )
+    error_message = "A política de deploy precisa dar sns:* só nos tópicos autoreparos-<servico>-* do próprio serviço."
+  }
+
   assert {
     condition     = toset(keys(aws_iam_role.deploy)) == toset(["os", "cobranca", "execucao", "cadastros"]) && length(aws_eks_access_entry.deploy) == 4 && length(aws_eks_access_policy_association.deploy) == 4
     error_message = "Precisam existir exatamente 4 roles de deploy, cada uma com uma access entry."

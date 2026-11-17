@@ -26,6 +26,12 @@
       "Resource": "arn:aws:sqs:${regiao}:${conta}:autoreparos-$${aws:PrincipalTag/Servico}-*"
     },
     {
+      "Sid": "PublicarSoNosTopicosDoServico",
+      "Effect": "Allow",
+      "Action": "sns:Publish",
+      "Resource": "arn:aws:sns:${regiao}:${conta}:autoreparos-$${aws:PrincipalTag/Servico}-*"
+    },
+    {
       "Sid": "TabelasDoServico",
       "Effect": "Allow",
       "Action": [
