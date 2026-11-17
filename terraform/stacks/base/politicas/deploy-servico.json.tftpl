@@ -23,6 +23,24 @@
       "Resource": "arn:aws:sqs:${regiao}:${conta}:autoreparos-${servico}-*"
     },
     {
+      "Sid": "TopicosDoServico",
+      "Effect": "Allow",
+      "Action": "sns:*",
+      "Resource": "arn:aws:sns:${regiao}:${conta}:autoreparos-${servico}-*"
+    },
+    {
+      "Sid": "AssinarTopicosDeOutrosServicos",
+      "Effect": "Allow",
+      "Action": [
+        "sns:Subscribe",
+        "sns:Unsubscribe",
+        "sns:GetTopicAttributes",
+        "sns:GetSubscriptionAttributes",
+        "sns:SetSubscriptionAttributes"
+      ],
+      "Resource": "arn:aws:sns:${regiao}:${conta}:autoreparos-*"
+    },
+    {
       "Sid": "TabelasDoServico",
       "Effect": "Allow",
       "Action": "dynamodb:*",
